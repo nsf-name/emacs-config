@@ -39,6 +39,8 @@ Ideally in a future version of this configuration, it would prompt you to instal
 - Make sure that Emacs makes sure you have all the packages you need, and gracefully degrades on failure
 - Add ensures by default rather than typing it manually
 - Add ~puni~ rather than ~paredit~
+- Make Emacs faster since it's kind of extremely slow now, especially at bootup
+- Add ~consult-gh~ support
 ** The Actual Configuration 📖
 *** Package Manager & Key Tools
 The default ~package.el~ is disabled by ~early-init.el~. Good old ~package.el~ is still the way to go, because we like stability and all the other ones eat our computer for breakfast. But we still need to define our repos:
@@ -65,6 +67,7 @@ We didn't have the frame loaded and rendered in until this point, so we couldn't
   (tool-bar-mode -1)
   (scroll-bar-mode -1)
   (pixel-scroll-mode)
+  (setq window-sides-vertical t)
 
   (setq use-file-dialog nil
 	use-dialog-box nil
@@ -587,7 +590,7 @@ And then, of course, ~auto-dark-mode~:
   (use-package auto-dark
     :disabled t
     :custom
-    (auto-dark-themes '((modus-vivendi-tritanopia) (modus-operandi)))
+    (auto-dark-themes '((vscode-dark-plus) (solarized-selenized-white)))
     (auto-dark-polling-interval-seconds 5)
     (auto-dark-allow-osascript t)
     :hook
@@ -1250,6 +1253,7 @@ And, when we can, we can try to switch to an upgraded mode:
 #+begin_src emacs-lisp
   (use-package treesit-auto
     :ensure t
+    :disabled t
     :custom
     (treesit-auto-install 'prompt)
     :config
@@ -1437,66 +1441,36 @@ In modern Emacs, the LSP server handles all the actual work of linting, fixing, 
   (use-package flycheck
     :ensure t)
 #+end_src
-**** ~lsp-mode~: Language Server Protocol Support
-We are installing as few ~flycheck~ modes as possible, this is basically our only backend. 
+**** ~eglot~: Language Server Protocol support
+The default and it's pretty good. Miles ahead of LSP mode but we still need better debug tools.
 #+begin_src emacs-lisp
-  (use-package lsp-mode
+  (use-package eglot
     :ensure t
+    :hook ((python-mode . eglot-ensure)
+	   (go-mode . eglot-ensure)
+	   (csharp-mode . eglot-ensure)))
+#+end_src
+The booster also helps, because I always bring the Rust toolchain with me:
+#+begin_src emacs-lisp
+  (use-package eglot-booster
+    :ensure t
+    :vc (eglot-booster :url "https://github.com/jdtsmith/eglot-booster"
+		       :branch "main")
     :init
-    (setq lsp-keymap-prefix "C-c l"
-	  ;; override the completion with corfu
-	  lsp-completion-provider :none
-	  lsp-completion-enable t
-	  ;; turn off all this visual junk
-	  lsp-headerline-breadcrumb-enable nil
-	  lsp-ui-sideline-enable nil ;; TODO: maybe change this?
-	  lsp-auto-guess-root t
-	  lsp-tex-server 'texlab)
-    (defun personal/lsp-mode-setup-completion ()
-      (setf (alist-get 'styles (alist-get 'lsp-capf completion-category-defaults))
-	    '(orderless)))
-    (add-hook 'lsp-completion-mode-hook #'personal/lsp-mode-setup-completion)
-    :hook ((python-mode . lsp)
-	   (java-mode . lsp)
-	   (LaTeX-mode . lsp)
-	   (latex-mode . lsp)
-	   (tex-mode . lsp)
-	   (bibtex-mode . lsp)
-	   (latex-mode . lsp)
-	   (yaml-mode . lsp)
-	   (bash-mode . lsp)
-	   (html-mode . lsp)
-	   (awk-mode . lsp)
-	   (fortran-mode . lsp)
-	   (python-ts-mode . lsp)
-	   (java-ts-mode . lsp)
-	   (LaTeX-ts-mode . lsp)
-	   (latex-ts-mode . lsp)
-	   (tex-ts-mode . lsp)
-	   (yaml-ts-mode . lsp)
-	   (bash-ts-mode . lsp)
-	   (fortran-ts-mode . lsp)
-	   (html-ts-mode . lsp)
-	   (csharp-mode . lsp)
-	   (csharp-ts-mode . lsp)
-	   (lsp-mode . lsp-enable-which-key-integration)))
-
-  (use-package lsp-ui
+    (eglot-booster-mode))
+#+end_src
+**** ~dape~: Debug Adapter Protocol support
+Probably the best debugging option that isn't torturous to use. Only works on a relatively minimal set of compiled languages at the time of writing.
+#+begin_src emacs-lisp
+  (use-package dape
     :ensure t
-    :after lsp-mode
+    :hook
+    (kill-emacs . dape-breakpoint-save)
+    (after-init . dape-breakpoint-load)
+    :custom
+    (dape-breakpoint-global-mode +1)
     :config
-    (setq lsp-ui-doc-enable t
-	  lsp-ui-doc-delay 0.5
-	  lsp-ui-doc-show-with-cursor t
-	  lsp-ui-doc-position 'at-point))
-
-  ;; TODO: this messes up tree-sitter folding
-  (use-package dap-mode
-    :ensure t
-    :disabled t
-    :after lsp-mode
-    :config
-    (dap-auto-configure-mode))  
+    (setq dape-buffer-window-arrangement 'gud))
 #+end_src
 **** ~ellama~: AI Programming
 AI peer programming is cool sometimes. Try to use this minimally (it makes you dumber), and DeepSeek's model is Good Enough for the vast majority of my simple needs. So you'll need to pull it using ~ollama~ obviously.
@@ -1554,12 +1528,6 @@ Cool. Now let's set up automatic previews:
 
   (add-hook 'after-save-hook #'personal/latex-auto-compile)
 #+end_src
-And we also want to grab some enhancements for our LSP server:
-#+begin_src emacs-lisp
-  (use-package lsp-latex
-    :ensure t
-    :after lsp-mode)
-#+end_src
 **** Language: MATLAB
 To be honest, I think I can make this do more, such as having MATLAB as a language server. How exactly is a bit difficult. This code seems to maybe have some answers? https://github.com/karthink/.emacs.d/blob/master/init.el#L1660
 
@@ -1585,22 +1553,6 @@ I use Anaconda, so unfortunately we have to do this:
     :config
     (conda-env-activate "base"))
 #+end_src
-~lsp-mode~ crashes and burns with ~pylsp~ when we use Anaconda, so:
-#+begin_src emacs-lisp
-  (use-package lsp-pyright
-    :ensure t
-    :after lsp-mode
-    :config
-    ;; fix lsp mode
-    (setq lsp-pyright-python-executable-cmd "/opt/anaconda3/bin/python"
-	  lsp-disabled-clients '(pylsp))
-    ;; I know better than the debugger in many cases
-    (setq lsp-pyright-diagnostic-mode "openFilesOnly"
-	  lsp-pyright-disable-language-services nil
-	  lsp-pyright-disable-organize-imports nil
-	  lsp-pyright-type-checking-mode "basic")
-    (add-hook 'python-mode-hook #'(lambda () (require 'lsp-pyright) (lsp))))
-#+end_src
 This fixes syntax on save:
 #+begin_src emacs-lisp
   (use-package blacken
@@ -1623,6 +1575,11 @@ This is for the language:
 And this is for project files:
 #+begin_src emacs-lisp
   (use-package csproj-mode
+    :ensure t)
+#+end_src
+**** Language: Typescript
+#+begin_src emacs-lisp
+  (use-package typescript-mode
     :ensure t)
 #+end_src
 **** Language: Go
@@ -1667,15 +1624,6 @@ This mode brings a lot to the table, but almost never actually need all it bring
   (use-package nix-mode
     :ensure t
     :mode "\\.nix\\'")
-#+end_src
-**** Language: Java
-This one ships with Emacs! We can make it smarter by having it chat with the LSP though:
-#+begin_src emacs-lisp
-  (use-package lsp-java
-    :ensure t
-    :config
-    (setq lsp-java-server-install-dir "~/.emacs.d/eclipse.jdt.ls/server/"
-	  lsp-java-java-path "/opt/homebrew/opt/openjdk/bin/java"))
 #+end_src
 **** Language: Common Lisp
 It's a shockingly nice language that I don't get to use often enough. In the event that I do write some more, it's nice to have the best IDE for it:

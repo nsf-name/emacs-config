@@ -11,8 +11,20 @@
   (setq gc-cons-threshold most-positive-fixnum
         file-name-handler-alist nil)
   (add-hook 'emacs-startup-hook
-            (lambda () (setq gc-cons-threshold (* 128 1024 1024)
-                        file-name-handler-alist init-file-name-handler-alist))))
+	    ;; fixing the GC so that it doesn't explode on us
+            (lambda () (setq gc-cons-threshold (* 1 800000)
+                             file-name-handler-alist init-file-name-handler-alist))))
+
+;; when we exit or enter the minibuffer, we want to raise the GC threshold,
+;; but not at any other times in normal operation.
+(defun personal/minibuffer-setup-hook ()
+  (setq gc-cons-threshold most-positive-fixnum))
+
+(defun personal/minibuffer-exit-hook ()
+  (setq gc-cons-threshold 800000))
+
+(add-hook 'minibuffer-setup-hook #'personal/minibuffer-setup-hook)
+(add-hook 'minibuffer-exit-hook #'personal/minibuffer-exit-hook)
 
 ;; tune performance permanently
 (setq jit-lock-defer-time 0
