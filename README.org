@@ -5,7 +5,7 @@ This repository contains the setup for an Emacs configuration, tailored for my u
 - Systems administration
 - General editing
 
-It works best on macOS and in a graphical frame. For the best experience, use Mitsuharu's Emacs macOS port, or a pureGTK build on Linux. Currently, it only works on Emacs versions newer than 28.
+It works best on macOS and in a graphical frame. For the best experience, use Yamamoto Mitsuharu's Emacs macOS port, or a pureGTK build on Linux. Currently, it only works on Emacs versions newer than 28 (and given the current version is Emacs 30, it's unlikely I'll ever go back and add support for older versions).
 
 I created this rather than using an existing configuration because when something breaks, most configurations are so opaque that it's unclear what parts feed into each other. The goal of this configuration is that each part is obvious, separated, and transparent in what it's doing, so that you can figure it out and quickly fix it yourself rather than ~grep~-ping through a thousand different ~.el~ files to find the bug.  
 
@@ -33,7 +33,7 @@ Firstly, make sure the following programs are installed:
   
 Ideally in a future version of this configuration, it would prompt you to install these, but that's currently not the case. I'll fix that eventually.
 
-~git clone~ this into ~~/.emacs.d~, then start Emacs. This will take a little time on initial startup, but after the first boot this process should become substantially faster. It works on *my* machine, but I make no guarantees that this will be the case on yours! 
+~git clone~ this into ~/.emacs.d~, then start Emacs. This will take a little time on initial startup, but after the first boot this process should become substantially faster. It works on *my* machine, but I make no guarantees that this will be the case on yours! 
 ** Things To Improve 🤔
 - Update this to use the new features in Emacs 30
 - Make sure that Emacs makes sure you have all the packages you need, and gracefully degrades on failure
@@ -1110,14 +1110,19 @@ TODO: this is fixed in Emacs 31.
     (corfu-terminal-mode))
 #+end_src
 **** ~cape~: More Completions For ~corfu~
-~corfu~ ships with a lot of built in configurations but it's still missing a lot of the functionality that ~company~ ships with. This package adds that back in so that it works properly. I don't want to trigger these manually, so I handle them all through ~corfu~.
+~corfu~ ships with a lot of built in configurations but it's still missing a lot of the functionality that ~company~ ships with. This package adds that back in so that it works properly. I don't want to trigger these manually, so I handle them all through ~corfu~. Also, the dictionary is only turned on selectively for performance reasons. Overall quite useful though. Dict gets better with history and is otherwise quite useless.
 #+begin_src emacs-lisp
   (use-package cape
     :ensure t
+    :hook ((org-mode text-mode markdown-mode) . personal/cape-dict) ; only run when needed, it's expensive
     :init
     (add-hook 'completion-at-point-functions #'cape-dabbrev)
     (add-hook 'completion-at-point-functions #'cape-file)
     (add-hook 'completion-at-point-functions #'cape-history))
+
+  ;; TODO: it would be sick if we could somehow have hovers pull up the dictionary definition
+  (defun personal/cape-dict ()
+    (add-to-list (make-local-variable 'completion-at-point-functions) #'cape-dict))
 #+end_src
 **** ~helpful~: Help System
 #+begin_src emacs-lisp
@@ -1307,6 +1312,14 @@ Emacs doesn't have a feature like Microsoft Word to check for ease of reading...
 #+begin_src emacs-lisp
   (use-package smog
     :ensure t)
+#+end_src
+**** ~neotree~: Side Tree Menu
+Now I'm aware that ~treemacs~ exists but it's too big and bloated for my liking. I want something fast and easy to use that also works on console. This is it.
+#+begin_src emacs-lisp
+  (use-package neotree
+    :ensure t
+    :init
+    (setq neo-theme 'ascii))
 #+end_src
 **** ~magit~: A Git Client
 A complete Git client is a pretty amazing thing.
@@ -1565,6 +1578,14 @@ And this lets us edit PIP standards:
 #+begin_src emacs-lisp
   (use-package pip-requirements
     :ensure t)
+#+end_src
+**** Language: R
+R is always going to be subpar in Emacs, but we can make it at least mildly less painful to use. ESS is okay I guess? I'd much rather use RStudio instead though.
+#+begin_src emacs-lisp
+  (use-package ess
+    :ensure t
+    :init
+    (require 'ess-r-mode))
 #+end_src
 **** Language: C#/.NET
 This is for the language:
