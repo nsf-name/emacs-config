@@ -540,16 +540,33 @@ TODO: this function is broken on macOS, only works on Linux
       :vc (screenshot :url "https://github.com/tecosaur/screenshot"
 		   :branch "master"))
 #+end_src
+**** ~mac-pseudo-daemon~
+This does a neat trick where we get Emacs daemon-like functionality on macOS. Very nice!
+#+begin_src emacs-lisp
+  (use-package mac-pseduo-daemon
+    :disabled t
+    :ensure nil
+    :vc (mac-pseudo-daemon :url "https://github.com/DarwinAwardWinner/mac-pseudo-daemon"
+			   :branch "main")
+    :init
+    (mac-pseudo-daemon-mode))
+#+end_src
 **** ~decide~
 TODO: this package is terrible. Write your own...?
 #+begin_src emacs-lisp
   (use-package decide
     :ensure t)
 #+end_src
+**** ~vlf~
+Sometimes, files are so big that Emacs simply cannot handle them. This solves that problem by making the performance better. I recommend using this on text files over 100MB, rather than ~so-long-mode~ which only really works well on smaller buffers.
+#+begin_src emacs-lisp
+  (use-package vlf
+    :ensure t)
+#+end_src
 *** Packages: Appearance
 This category is for packages which make Emacs' interface look nicer.
-**** Themes: ~solarized~, ~vscode-dark-plus~, ~waher~, ~modus~
-I quite like the dark VSCode and Solarized themes, but ~modus~ is nice sometimes too. All are installed, so it's easy to change them. At present, the theme system also can intelligent switch between night and day mode. Nice!
+**** Themes: ~gruvbox~, ~solarized~, ~vscode-dark-plus~, ~waher~, ~modus~
+Gruvbox is simply the best theme ever invented, but sometimes I like to have some others. All are installed, so it's easy to change them. At present, the theme system also can intelligent switch between night and day mode. Nice!
 #+begin_src emacs-lisp
   ; ignore asking if custom themes are safe
   (setq custom-safe-themes t)
@@ -563,34 +580,15 @@ I quite like the dark VSCode and Solarized themes, but ~modus~ is nice sometimes
 	  solarized-distinct-fringe-background t
 	  solarized-emphasize-indicators t
 	  x-underline-at-descent-line t))
-    ;(load-theme 'solarized-selenized-black t)
- 
-  (use-package vscode-dark-plus-theme
-    :ensure t
-    :init
-    (load-theme 'vscode-dark-plus t))
-
-  (use-package night-owl-theme
-    :ensure t
-    :demand t)
-
-  (use-package waher-theme
-    :ensure t
-    :demand t
-    :init)
-  ;;(load-theme 'waher t))
-
-  (use-package modus-themes
-    :ensure t
-    :demand t)
+    (load-theme 'solarized-selenized-black t)
 #+end_src
 And then, of course, ~auto-dark-mode~:
 #+begin_src emacs-lisp
   ;; this actually does nothing at the moment but it's nice to have
   (use-package auto-dark
-    :disabled t
+    :ensure t
     :custom
-    (auto-dark-themes '((vscode-dark-plus) (solarized-selenized-white)))
+    (auto-dark-themes '((solarized-selenized-black) (solarized-selenized-white)))
     (auto-dark-polling-interval-seconds 5)
     (auto-dark-allow-osascript t)
     :hook
@@ -1114,7 +1112,7 @@ TODO: this is fixed in Emacs 31.
 #+begin_src emacs-lisp
   (use-package cape
     :ensure t
-    :hook ((org-mode text-mode markdown-mode) . personal/cape-dict) ; only run when needed, it's expensive
+    :hook ((fundamental-mode) . personal/cape-dict) ; only run when needed, it's expensive
     :init
     (add-hook 'completion-at-point-functions #'cape-dabbrev)
     (add-hook 'completion-at-point-functions #'cape-file)
@@ -1601,6 +1599,12 @@ And this is for project files:
 **** Language: Typescript
 #+begin_src emacs-lisp
   (use-package typescript-mode
+    :ensure t)
+#+end_src
+**** Language: HTML/CSS/JS
+These languages are terrible, fortunately ~skewer-mode~ is great and lets you use all of them in the same buffer all at once, and even summons a web server for you:
+#+begin_src emacs-lisp
+  (use-package skewer-mode
     :ensure t)
 #+end_src
 **** Language: Go
