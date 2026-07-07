@@ -1075,11 +1075,13 @@ It's a good replacement for ~company~.
     (global-corfu-mode)
     (corfu-history-mode)
     (corfu-popupinfo-mode)
-    :bind (:map corfu-map ("RET" . nil))
+    :bind (:map corfu-map
+		("RET" . nil)
+		("M-d" . corfu-popupinfo-toggle))
     ;; if we use eshell, be careful not to autocomplete
     :hook (eshell-mode-hook . (lambda ()
 				(setq-local corfu-auto nil)
-				(corfu-mode)))
+				(corfu-mode))))
     :config
     ;; use corfu in the minibuffer
     (defun corfu-enable-always-in-minibuffer ()
@@ -1452,23 +1454,19 @@ In modern Emacs, the LSP server handles all the actual work of linting, fixing, 
   (use-package flycheck
     :ensure t)
 #+end_src
-**** ~eglot~: Language Server Protocol support
-The default and it's pretty good. Miles ahead of LSP mode but we still need better debug tools.
+**** ~lsp-mode~: Language Server Protocol support
+It's pretty good these days, but the choice to make ~company~ mandatory was very strange.
 #+begin_src emacs-lisp
-  (use-package eglot
+  (use-package lsp-mode
     :ensure t
-    :hook ((python-mode . eglot-ensure)
-	   (go-mode . eglot-ensure)
-	   (csharp-mode . eglot-ensure)))
-#+end_src
-The booster also helps, because I always bring the Rust toolchain with me:
-#+begin_src emacs-lisp
-  (use-package eglot-booster
-    :ensure t
-    :vc (eglot-booster :url "https://github.com/jdtsmith/eglot-booster"
-		       :branch "main")
-    :init
-    (eglot-booster-mode))
+    ;; why does it even come with this "feature"
+    :bind
+    (:map lsp-ui-mode-map
+	  ("C-c u" . lsp-ui-imenu)
+	  ("M-i" . lsp-ui-doc-focus-frame))
+    (:map lsp-mode-map
+	  ("C-c d" . lsp-describe-thing-at-point))
+    :hook (lsp-mode . (lambda () (company-mode -1))))
 #+end_src
 **** ~dape~: Debug Adapter Protocol support
 Probably the best debugging option that isn't torturous to use. Only works on a relatively minimal set of compiled languages at the time of writing.
@@ -1483,22 +1481,6 @@ Probably the best debugging option that isn't torturous to use. Only works on a 
     :config
     (setq dape-buffer-window-arrangement 'gud))
 #+end_src
-**** ~ellama~: AI Programming
-AI peer programming is cool sometimes. Try to use this minimally (it makes you dumber), and DeepSeek's model is Good Enough for the vast majority of my simple needs. So you'll need to pull it using ~ollama~ obviously.
-#+begin_src emacs-lisp
-  (use-package ellama
-    :ensure t
-    :diminish 
-    :bind ("C-c e" . ellama)
-    ;; send last message in chat buffer with C-c C-c
-    :hook (org-ctrl-c-ctrl-c-final . ellama-chat-send-last-message)
-    :init (setopt ellama-auto-scroll t)
-    :config
-    ;; show ellama context in header line in all buffers
-    ;;(ellama-context-header-line-global-mode +1)
-    ;; show ellama session id in header line in all buffers
-    ;;(ellama-session-header-line-global-mode +1)
-    )
 #+end_src
 **** Language: LaTeX
 LaTeX is very cool and Emacs is really, really good at this mode nowadays. Let's set up a nicer environment first:
@@ -1553,26 +1535,16 @@ The actual mode is bundled with Emacs, but the default interpreter is trash. Let
   (when (executable-find "ipython")
     (setq python-shell-interpreter "ipython"
 	  python-shell-interpreter-args "-i --simple-prompt"))
-#+end_src 
-I use Anaconda, so unfortunately we have to do this:
-#+begin_src emacs-lisp
-  (use-package conda
-    :ensure t
-    :init
-    (setq conda-anaconda-home "/opt/anaconda3/"
-	  conda-env-autoactivate-mode t)
-    :config
-    (conda-env-activate "base"))
 #+end_src
-This fixes syntax on save:
+Basically a requirement to use with uv:
 #+begin_src emacs-lisp
-  (use-package blacken
+  (use-package uv-mode
     :ensure t
-    :ensure-system-package black
     :diminish
-    :hook ((python-mode . blacken-mode)))
+    :init
+    (uv-mode))
 #+end_src
-And this lets us edit PIP standards:
+This lets us edit PIP standards:
 #+begin_src emacs-lisp
   (use-package pip-requirements
     :ensure t)
