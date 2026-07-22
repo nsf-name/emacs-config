@@ -580,7 +580,7 @@ Gruvbox is simply the best theme ever invented, but sometimes I like to have som
 	  solarized-distinct-fringe-background t
 	  solarized-emphasize-indicators t
 	  x-underline-at-descent-line t))
-    (load-theme 'solarized-selenized-black t)
+  (load-theme 'solarized-selenized-black t)
 #+end_src
 And then, of course, ~auto-dark-mode~:
 #+begin_src emacs-lisp
@@ -588,7 +588,7 @@ And then, of course, ~auto-dark-mode~:
   (use-package auto-dark
     :ensure t
     :custom
-    (auto-dark-themes '((solarized-selenized-black) (solarized-selenized-white)))
+    (auto-dark-themes '((solarized-selenized-black) (solarized-selenized-light)))
     (auto-dark-polling-interval-seconds 5)
     (auto-dark-allow-osascript t)
     :hook
@@ -650,12 +650,17 @@ This replaces the default bitmaps with some more readable ones.
     :init
     (modern-fringes-mode))
 #+end_src
-**** ~ligatures~
+**** ~ligatures~ and ~fontaine~
 They look /so good/ with the right font. This config assumes you use JetBrains Mono, as this section won't work with any other font.
 #+begin_src emacs-lisp
   ;; obviously, this must be set first
   (set-frame-font "JetBrains Mono 12" nil t)
 
+  (setq fontaine-latest-state-file
+	(locate-user-emacs-file "fontaine-latest-state.eld"))
+#+end_src
+And now for the ligatures:
+#+begin_src emacs-lisp
   (use-package ligature
     :ensure t
     :diminish
@@ -727,12 +732,11 @@ Makes certain parts of the screen change color when idle. A nicer alternative to
 #+end_src
 **** ~pulsing-cursor~
 Blink and fade the cursor for a RGB-lighting like effect.
-TODO: this package is insanely bugged on modern Emacs
 #+begin_src emacs-lisp
   (use-package pulsing-cursor
-    :disabled t
+    :ensure t
     :diminish
-    :vc (pulsing-cursor :url "https://github.com/abrichr/pulsing-cursor" :branch "main")
+    :vc (pulsing-cursor :url "https://github.com/jasonjckn/pulsing-cursor" :branch "main")
     :config
     (pulsing-cursor-mode +1))
 
@@ -795,6 +799,28 @@ Make hex color codes match their values.
     :hook ((emacs-lisp-mode . rainbow-mode)
 	   (help-mode . rainbow-mode)
 	   ((css-mode html-mode sass-mode) . rainbow-mode)))
+#+end_src
+**** ~comet-trail~
+Make the cursor have a nice effect, like ~beacon~ but for within-buffer moves. This thing is so slow because it seemingly recalculates on *every move*...
+#+begin_src emacs-lisp
+  (use-package comet-trail
+    :disabled t
+    :hook ((prog-mode . comet-trail-mode)
+	   (text-mode . comet-trail-mode)
+	   (fundamental-mode . comet-trail-mode))
+    :config
+    (setq comet-trail-minimum-distance 50
+	  comet-trail-speed 0.25))
+#+end_src
+**** ~symon~
+An extremely small system monitor in the idle modeline. Very good for full-screen Emacs, or when using X over SSH.
+#+begin_src emacs-lisp
+  (use-package symon
+    :ensure t
+    :disabled t
+    :diminish
+    :config
+    (symon-mode))
 #+end_src
 **** ~cowsay~
 Add a little fortune to our scratch buffers.
@@ -974,12 +1000,6 @@ And we probably want some better suggestion feedback:
     :after eshell
     :config
     (eshell-did-you-mean-setup))
-
-  (use-package esh-autosuggest
-    :ensure t
-    :after eshell
-    :diminish eshell-autosuggest-mode
-    :hook (eshell-mode . esh-autosuggest-mode))
 #+end_src
 It might also be nice to have a bootup screen like every other shell:
 #+begin_src emacs-lisp
@@ -1081,7 +1101,7 @@ It's a good replacement for ~company~.
     ;; if we use eshell, be careful not to autocomplete
     :hook (eshell-mode-hook . (lambda ()
 				(setq-local corfu-auto nil)
-				(corfu-mode))))
+				(corfu-mode)))
     :config
     ;; use corfu in the minibuffer
     (defun corfu-enable-always-in-minibuffer ()
@@ -1114,15 +1134,13 @@ TODO: this is fixed in Emacs 31.
 #+begin_src emacs-lisp
   (use-package cape
     :ensure t
-    :hook ((fundamental-mode) . personal/cape-dict) ; only run when needed, it's expensive
+    :config
+    (setq cape-dict-file "/usr/share/dict/words")
     :init
     (add-hook 'completion-at-point-functions #'cape-dabbrev)
     (add-hook 'completion-at-point-functions #'cape-file)
     (add-hook 'completion-at-point-functions #'cape-history))
 
-  ;; TODO: it would be sick if we could somehow have hovers pull up the dictionary definition
-  (defun personal/cape-dict ()
-    (add-to-list (make-local-variable 'completion-at-point-functions) #'cape-dict))
 #+end_src
 **** ~helpful~: Help System
 #+begin_src emacs-lisp
@@ -1258,9 +1276,8 @@ And, when we can, we can try to switch to an upgraded mode:
 #+begin_src emacs-lisp
   (use-package treesit-auto
     :ensure t
-    :disabled t
-    :custom
-    (treesit-auto-install 'prompt)
+    :init
+    (setq treesit-auto-install 'prompt)
     :config
     (treesit-auto-add-to-auto-mode-alist 'all)
     (delete 'csharp treesit-auto-langs) ;; everything but c# which is bugged
@@ -1293,7 +1310,7 @@ An incredibly useful feature for debugging Elisp, this lets you step through a m
     (add-hook 'emacs-startup-hook #'easysession-load-including-geometry 102)
     (add-hook 'emacs-startup-hook #'easysession-save-mode 103))
 #+end_src
-And bind it under ~C-c r~ because it's short for ~r~estore in my mind:
+And bind it under ~C-c r~ because it's short for restore in my mind:
 #+begin_src emacs-lisp
   ;; Main keybindings
   (global-set-key (kbd "C-c r l") 'easysession-switch-to) ;; load
@@ -1440,12 +1457,17 @@ Shows what has changed between Git commits. This doesn't work without a graphica
 
 #+end_src
 **** ~treesit-fold~: Folding in Fringes
-So shockingly Emacs doesn't ship with code folding outside of Org. This fixes this.
+So shockingly Emacs doesn't ship with code folding outside of Org. This fixes this. Fold with shift-tab.
 #+begin_src emacs-lisp
   (use-package treesit-fold
     :ensure t
     :diminish global-treesit-fold-indicators-mode
+    :bind
+    (:map treesit-fold-mode-map
+	  ("<backtab>" . treesit-fold-toggle))
     :init
+    (setq treesit-fold-line-count-show t
+	  treesit-fold-line-count-format " <%d lines> ")
     (global-treesit-fold-indicators-mode))
 #+end_src
 **** ~flycheck~: Frontend to ~lsp-mode~
@@ -1459,14 +1481,11 @@ It's pretty good these days, but the choice to make ~company~ mandatory was very
 #+begin_src emacs-lisp
   (use-package lsp-mode
     :ensure t
-    ;; why does it even come with this "feature"
     :bind
-    (:map lsp-ui-mode-map
-	  ("C-c u" . lsp-ui-imenu)
-	  ("M-i" . lsp-ui-doc-focus-frame))
     (:map lsp-mode-map
-	  ("C-c d" . lsp-describe-thing-at-point))
-    :hook (lsp-mode . (lambda () (company-mode -1))))
+	  ("C-c d" . lsp-describe-thing-at-point)
+	  ("C-c u" . lsp-ui-imenu)
+	  ("M-i" . lsp-ui-doc-focus-frame)))
 #+end_src
 **** ~dape~: Debug Adapter Protocol support
 Probably the best debugging option that isn't torturous to use. Only works on a relatively minimal set of compiled languages at the time of writing.
@@ -1544,7 +1563,29 @@ Basically a requirement to use with uv:
     :init
     (uv-mode))
 #+end_src
-This lets us edit PIP standards:
+This is also useful for ~lsp-mode~:
+#+begin_src emacs-lisp
+  (use-package lsp-pyright
+    :ensure t
+    :hook (python-mode . (lambda ()
+			   (require 'lsp-pyright)
+			   (lsp-deferred))))
+#+end_src
+Then do very lazy autoformatting with Ruff at save-time.
+#+begin_src emacs-lisp
+  (use-package ruff-format
+    :ensure t
+    :diminish
+    :hook (python-mode . ruff-format-on-save-mode))
+#+end_src
+Also, we need a hook to keep flycheck around just for ruff:
+#+begin_src emacs-lisp
+(add-hook 'lsp-after-open-hook
+          (lambda ()
+            (when (derived-mode-p 'python-mode)
+              (flycheck-add-next-checker 'lsp '(warning . python-ruff)))))
+#+end_src
+This lets us edit PIP requirements:
 #+begin_src emacs-lisp
   (use-package pip-requirements
     :ensure t)
