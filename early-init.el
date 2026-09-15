@@ -80,6 +80,17 @@
 (setq default-frame-alist '((vertical-scroll-bars . nil)
                             (horizontal-scroll-bars . nil)))
 
+;; better TLS safety settings so we don't download malware
+(setq gnutls-verify-error t)
+(setq tls-checktrust t)
+(setq gnutls-min-prime-bits 3072)
+
+;; fix stupid xcode bugs on macOS 27
+(setenv "MACOSX_DEPLOYMENT_TARGET" "26.0")
+
+;; we always want use-package to do ensure
+;;(setq use-package-always-ensure t)
+
 ;; disable package.el
 (setq package-enable-at-startup nil)
 
