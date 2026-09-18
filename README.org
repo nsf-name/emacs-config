@@ -203,9 +203,11 @@ These go first, so that even if loading the rest of this file fails, there's at 
   (require 'org-tempo)
 
   ;; reread files from disk
-  (setopt auto-revert-avoid-polling t)
-  (setopt auto-revert-interval 5)
-  (setopt auto-revert-check-vc-info t)
+  (setopt auto-revert-avoid-polling t
+  	auto-revert-interval 5
+  	auto-revert-check-vc-info t)
+  ;; don't auto revert on remote buffers. so laggy
+  (setopt auto-revert-remote-files nil)
   (global-auto-revert-mode)
 
   ;; move through windows with Ctrl-<arrow keys>
@@ -301,11 +303,19 @@ These go first, so that even if loading the rest of this file fails, there's at 
     (connection-local-set-profiles
      '(:application tramp :protocol "ssh")
      'remote-direct-async-process)
-    ;; Tips to speed up connections
     ;; change tramp-verbose if you're having issues
-    (setopt tramp-verbose 3)
-    (setopt tramp-chunksize 2000)
-    (setopt tramp-ssh-controlmaster-options nil))
+    (setopt tramp-verbose 3
+  	  tramp-chunksize 2000
+  	  tramp-ssh-controlmaster-options nil
+  	  tramp-default-method "ssh"
+  	  remote-file-name-inhibit-cache nil
+  	  tramp-completion-reread-directory-timeout nil)
+    ;; stop polling all the damn time
+    (setopt vc-ignore-dir-regexp
+  	  (format "%s\\|%s" vc-ignore-dir-regexp tramp-file-name-regexp))
+    ;; reuse SSH connections
+    (setq tramp-ssh-controlmaster-options
+  	"-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=yes"))
 
   ;; make dired less awful to look at
   (setopt dired-listing-switches "-alh")
@@ -771,9 +781,11 @@ This package is finally fixed! Nice, smooth dimming of inactive buffers, that no
     (dimmer-mode t))
 #+end_src
 **** ~beacon~
+Cool package that highlights where your cursor is on switched buffers.
 #+begin_src emacs-lisp
   (use-package beacon
     :diminish
+    :if window-system
     :config
     (beacon-mode 1))
 #+end_src
@@ -803,10 +815,11 @@ Blink and fade the cursor for a RGB-lighting like effect.
     (pulsing-cursor-mode +1))
 #+end_src
 **** ~goggles~
+Flashes text as it's being added or removed. VERY slow in the terminal.
 #+begin_src emacs-lisp
-  ;; flash the text that we're looking at when editing
   (use-package goggles
     :diminish
+    :if window-system
     :hook ((prog-mode text-mode) . goggles-mode)
     :config
     (setopt goggles-pulse t))
