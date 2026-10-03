@@ -29,7 +29,7 @@ The default ~package.el~ is disabled by ~early-init.el~. Let's use ~Elpaca~ to m
 #+begin_src emacs-lisp
   (setq use-package-always-ensure t)
   (elpaca elpaca-use-package
-  	(elpaca-use-package-mode))
+    (elpaca-use-package-mode))
 
   (elpaca-wait)
 #+end_src
@@ -69,8 +69,8 @@ We didn't have the frame loaded and rendered in until this point, so we couldn't
   (setopt window-sides-vertical t)
 
   (setopt use-file-dialog nil
-      	 use-dialog-box nil
-      	 inhibit-startup-screen t)
+      	use-dialog-box nil
+      	inhibit-startup-screen t)
 
   (setopt mac-command-modifier 'meta)
 
@@ -131,7 +131,7 @@ These go first, so that even if loading the rest of this file fails, there's at 
 
   ;; disable bidirectional text almost always
   (setopt bidi-display-reordering 'left-to-right
-       bidi-paragraph-direction 'left-to-right)
+  	bidi-paragraph-direction 'left-to-right)
   (setopt bidi-inhibit-bpa t)
 
   ;; don't fontify until we're done typing for speed
@@ -163,7 +163,7 @@ These go first, so that even if loading the rest of this file fails, there's at 
 
   ;; scroll horizontally conservatively
   (setopt hscroll-margin 2
-        hscroll-step 1)
+  	hscroll-step 1)
 
   ;; preserve point's vertical screen position when scrolling
   (setopt scroll-preserve-screen-position t)
@@ -190,14 +190,14 @@ These go first, so that even if loading the rest of this file fails, there's at 
     (file-size-human-readable (buffer-size)))
 
   (setopt ibuffer-formats
-        '((mark modified read-only locked " "
-  	      (name 18 18 :left :elide)
-  	      " "
-  	      (size-h 9 -1 :right)
-  	      " "
-  	      (mode 16 16 :left :elide)
-  	      " "
-  	      filename-and-process)))
+  	'((mark modified read-only locked " "
+  		(name 18 18 :left :elide)
+  		" "
+  		(size-h 9 -1 :right)
+  		" "
+  		(mode 16 16 :left :elide)
+  		" "
+  		filename-and-process)))
 
   ;; need for code snippets
   (require 'org-tempo)
@@ -227,8 +227,8 @@ These go first, so that even if loading the rest of this file fails, there's at 
     (dolist (dir (list auto-dir backup-dir))
       (unless (file-exists-p dir) (make-directory dir t)))
     (setopt backup-directory-alist `(("." . ,backup-dir))
-  	auto-save-file-name-transforms `((".*" ,auto-dir t))
-  	auto-save-list-file-prefix (concat auto-dir ".saves-")))
+  	  auto-save-file-name-transforms `((".*" ,auto-dir t))
+  	  auto-save-list-file-prefix (concat auto-dir ".saves-")))
 
   ;; highlight urls
   ;; if we don't set it this way, xwidget breaks
@@ -251,7 +251,7 @@ These go first, so that even if loading the rest of this file fails, there's at 
   ;; remember where we are and what we're doing
   (save-place-mode 1)
   (setopt history-length 1000
-        recentf-max-saved-items 1000)
+  	recentf-max-saved-items 1000)
   (recentf-mode 1)
   (savehist-mode 1)
 
@@ -262,15 +262,15 @@ These go first, so that even if loading the rest of this file fails, there's at 
 
   ;; save the kill ring to the hist function
   (setopt savehist-additional-variables
-        '(search-ring regexp-search-ring kill-ring))
+  	'(search-ring regexp-search-ring kill-ring))
 
   ;; but text properties can get large, so strip them
   ;; thanks, Doom Emacs!
   (add-hook 'savehist-save-hook
             (lambda ()
               (setopt kill-ring
-                    (mapcar #'substring-no-properties
-                            (cl-remove-if-not #'stringp kill-ring)))))
+                      (mapcar #'substring-no-properties
+                              (cl-remove-if-not #'stringp kill-ring)))))
 
   ;; always use UTF-8
   (prefer-coding-system 'utf-8)
@@ -281,13 +281,40 @@ These go first, so that even if loading the rest of this file fails, there's at 
   ;; when we have two unique buffers, act like it
   (require 'uniquify)
   (setopt uniquify-separator " • "
-        uniquify-after-kill-buffer-p t
-        uniquify-ignore-buffers-re "^\\*"
-        uniquify-buffer-name-style 'reverse)
+  	uniquify-after-kill-buffer-p t
+  	uniquify-ignore-buffers-re "^\\*"
+  	uniquify-buffer-name-style 'reverse)
 
   ;; handle long files
   (when (fboundp 'so-long-enable)
     (add-hook 'after-init-hook 'so-long-enable))
+
+  ;; but long files lead to weird behavior, so
+  (with-eval-after-load 'so-long
+    ;; keep syntax highlighting
+    (setq so-long-minor-modes (delq 'font-lock-mode so-long-minor-modes))
+    ;; reduce the decoration levels
+    (add-to-list 'so-long-variable-overrides '(treesit-font-lock-level . 1))
+    (add-to-list 'so-long-variable-overrides '(font-lock-maximum-decoration . 1))
+    ;; don't save cursor position
+    (add-to-list 'so-long-variable-overrides '(save-place-alist . nil))
+    ;; keep buffer writable
+    (setf (alist-get 'buffer-read-only so-long-variable-overrides nil t) nil)
+    ;; modern Emacs is fast at truncated lines and line numbers
+    (setf (alist-get 'truncate-lines so-long-variable-overrides nil t) nil)
+    (setf (alist-get 'line-move-visual so-long-variable-overrides nil t) nil)
+    (setq so-long-minor-modes (delq 'display-line-numbers-mode so-long-minor-modes)))
+
+  ;; don't replace the major mode. use a minor mode
+  (setq so-long-action 'so-long-minor-mode)
+
+  ;; only use long-lines mode where it ought to go
+  (with-eval-after-load 'so-long
+    (add-to-list 'so-long-target-modes 'text-mode)
+    (add-to-list 'so-long-target-modes 'conf-mode))
+
+  ;; now turn on so-long everywhere
+  (global-so-long-mode 1)
 
   ;; when we're a mac, use mdfind not find
   (when *is-a-mac*
@@ -324,23 +351,23 @@ These go first, so that even if loading the rest of this file fails, there's at 
   (if (or *is-a-mac* *is-a-haiku* *is-a-unix*)
       (progn
         (setopt ls-lisp-use-insert-directory-program nil
-  	    dired-use-ls-dired nil)
+  	      dired-use-ls-dired nil)
         (require 'ls-lisp)))
 
   ;; keep dired clean, hide trash
   (setopt dired-omit-verbose nil)
   (setopt dired-omit-files (concat "\\`[.]\\'"
-                                 "\\|\\.\\(?:elc\\|a\\|o\\|pyc\\|pyo\\|swp\\|class\\)\\'"
-                                 "\\|^\\.DS_Store\\'"
-                                 "\\|^\\.\\(?:svn\\|git\\)\\'"
-                                 "\\|^flycheck_.*"
-                                 "\\|^flymake_.*"))
+  				 "\\|\\.\\(?:elc\\|a\\|o\\|pyc\\|pyo\\|swp\\|class\\)\\'"
+  				 "\\|^\\.DS_Store\\'"
+  				 "\\|^\\.\\(?:svn\\|git\\)\\'"
+  				 "\\|^flycheck_.*"
+  				 "\\|^flymake_.*"))
 
   (add-hook 'dired-mode-hook #'dired-omit-mode)
 
   ;; list directories first
   (setopt ls-lisp-verbosity nil
-        ls-lisp-dirs-first t)
+  	ls-lisp-dirs-first t)
 
   ;; kill dired buffers as we navigate
   (setopt dired-kill-when-opening-new-dired-buffer t)
@@ -355,10 +382,10 @@ These go first, so that even if loading the rest of this file fails, there's at 
 
   ;; make recursive deletes, copies, etc easier
   (setopt dired-deletion-confirmer 'y-or-n-p
-        dired-recursive-deletes 'top
-        dired-clean-confirm-killing-deleted-buffers nil)
+  	dired-recursive-deletes 'top
+  	dired-clean-confirm-killing-deleted-buffers nil)
   (setopt dired-recursive-copies 'always
-        dired-create-destination-dirs 'ask)
+  	dired-create-destination-dirs 'ask)
 
   ;; hide free space thing
   (setopt dired-free-space nil)
@@ -369,7 +396,7 @@ These go first, so that even if loading the rest of this file fails, there's at 
   ;; trigger dired reloads even faster, but not on tramp
   (setopt dired-auto-revert-buffer 'dired-directory-changed-p)
   (setopt dired-do-revert-buffer (lambda (dir)
-                                 (not (file-remote-p dir))))
+  				 (not (file-remote-p dir))))
 
   ;; dired drag and drop!
   (setopt dired-mouse-drag-files t)
@@ -472,13 +499,24 @@ This category is for packages which extend Emacs without adding brand new featur
 Really nice fix for the fact that stock Emacs can't do this.
 #+begin_src emacs-lisp
   (use-package osx-trash
-    
     :if *is-a-mac*
     :init
     (if (executable-find "trash")
-      (setq-default osx-trash-command "trash"))
+        (setq-default osx-trash-command "trash"))
     (osx-trash-setup))
   (setopt delete-by-moving-to-trash t)
+#+end_src
+**** ~osx-dictionary~
+Allows for checking the dictionary when writing without opening it in macOS.
+#+begin_src emacs-lisp
+  (use-package osx-dictionary
+    :if *is-a-mac*)
+#+end_src
+**** ~reveal-in-osx-finder~
+Similarly nice feature that opens up a file in macOS. This exist in ~dired~ with ~xdg-open~ but nothing like it for macOS.
+#+begin_src emacs-lisp
+  (use-package reveal-in-osx-finder
+    :bind ("C-c z" . reveal-in-osx-finder))
 #+end_src
 **** ~which-key~
 This is in stock as of Emacs 30, so this just enables it with diminish, and doesn't download anything.
@@ -507,6 +545,7 @@ Also, automatically retry if we can't do it for whatever reason.
 Asynchronous compilation for Emacs. Note: this can sometimes really delay startup, and after startup there might still be Emacs processes running in the background, so be mindful of that if you're in a hurry.
 #+begin_src emacs-lisp
   (use-package async
+    :diminish
     :config
     (async-bytecomp-package-mode 1)
     (dired-async-mode 1))
@@ -638,7 +677,7 @@ This category is for packages which make Emacs' interface look nicer.
 **** Themes: ~gruvbox~, ~solarized~, ~vscode-dark-plus~, ~waher~, ~modus~
 Gruvbox is simply the best theme ever invented, but sometimes I like to have some others. All are installed, so it's easy to change them. At present, the theme system also can intelligent switch between night and day mode. Nice!
 #+begin_src emacs-lisp
-  ; ignore asking if custom themes are safe
+  					; ignore asking if custom themes are safe
   (setopt custom-safe-themes t)
 
   (use-package solarized-theme
@@ -664,14 +703,14 @@ And then, of course, ~auto-dark-mode~:
     :hook
     (auto-dark-dark-mode
      . (lambda ()
-  	 (set-face-background 'why-this-annotate-heat-map-cold "#203448")
-  	 (set-face-background 'why-this-annotate-heat-map-warm "#382f27")
-  	 (message "[auto-dark] Dark mode theme automatically applied")))
+         (set-face-background 'why-this-annotate-heat-map-cold "#203448")
+         (set-face-background 'why-this-annotate-heat-map-warm "#382f27")
+         (message "[auto-dark] Dark mode theme automatically applied")))
     (auto-dark-light-mode
      . (lambda ()
-  	 (set-face-background 'why-this-annotate-heat-map-cold "#dde3f4")
-  	 (set-face-background 'why-this-annotate-heat-map-warm "#f0e0d4")
-  	 (message "[auto-dark] Light mode theme automatically applied")))
+         (set-face-background 'why-this-annotate-heat-map-cold "#dde3f4")
+         (set-face-background 'why-this-annotate-heat-map-warm "#f0e0d4")
+         (message "[auto-dark] Light mode theme automatically applied")))
     :init (auto-dark-mode))
 #+end_src
 **** Modeline: ~telephone-line~
@@ -682,23 +721,23 @@ It's a bit nicer looking than the powerbars, which are too flashy for me.
     :diminish telephone-line-mode
     :config
     (setq-default telephone-line-lhs
-  	  '((evil   . (telephone-line-flycheck-segment))
-  	    (accent . (telephone-line-vc-segment
-  		       telephone-line-process-segment))
-  	    (nil    . (telephone-line-projectile-segment
-  		       telephone-line-buffer-segment)))
-  	  telephone-line-rhs
-  	  '((nil    . (telephone-line-position-segment))
-  	    (accent . (telephone-line-major-mode-segment))
-  	    ;; I used to put minor mode here but it's way too annoying in practice.
-  	    ;; This is where our LSP info will live
-  	    (evil   . (telephone-line-misc-info-segment)))
-  	  telephone-line-height 24
-  	  ;; different layouts don't render well on macOS.
-  	  telephone-line-primary-left-separator 'telephone-line-nil
-  	  telephone-line-secondary-left-separator 'telephone-line-nil
-  	  telephone-line-primary-right-separator 'telephone-line-nil
-  	  telephone-line-secondary-right-separator 'telephone-line-nil)
+  		'((evil   . (telephone-line-flycheck-segment))
+  		  (accent . (telephone-line-vc-segment
+  			     telephone-line-process-segment))
+  		  (nil    . (telephone-line-projectile-segment
+  			     telephone-line-buffer-segment)))
+  		telephone-line-rhs
+  		'((nil    . (telephone-line-position-segment))
+  		  (accent . (telephone-line-major-mode-segment))
+  		  ;; I used to put minor mode here but it's way too annoying in practice.
+  		  ;; This is where our LSP info will live
+  		  (evil   . (telephone-line-misc-info-segment)))
+  		telephone-line-height 24
+  		;; different layouts don't render well on macOS.
+  		telephone-line-primary-left-separator 'telephone-line-nil
+  		telephone-line-secondary-left-separator 'telephone-line-nil
+  		telephone-line-primary-right-separator 'telephone-line-nil
+  		telephone-line-secondary-right-separator 'telephone-line-nil)
     (telephone-line-mode 1))
 #+end_src
 **** ~solaire~
@@ -733,7 +772,7 @@ They look /so good/ with the right font. This config assumes you use JetBrains M
   (set-frame-font "JetBrains Mono 12" nil t)
 
   (setopt fontaine-latest-state-file
-	(locate-user-emacs-file "fontaine-latest-state.eld"))
+  	(locate-user-emacs-file "fontaine-latest-state.eld"))
 #+end_src
 And now for the ligatures:
 #+begin_src emacs-lisp
@@ -742,18 +781,18 @@ And now for the ligatures:
     :config
     ;; the JetBrains specific part
     (ligature-set-ligatures 'prog-mode '("--" "---" "==" "===" "!=" "!==" "=!="
-  				"=:=" "=/=" "<=" ">=" "&&" "&&&" "&=" "++" "+++" "***" ";;" "!!"
-  				"??" "???" "?:" "?." "?=" "<:" ":<" ":>" ">:" "<:<" "<>" "<<<" ">>>"
-  				"<<" ">>" "||" "-|" "_|_" "|-" "||-" "|=" "||=" "##" "###" "####"
-  				"#{" "#[" "]#" "#(" "#?" "#_" "#_(" "#:" "#!" "#=" "^=" "<$>" "<$"
-  				"$>" "<+>" "<+" "+>" "<*>" "<*" "*>" "</" "</>" "/>" "<!--" "<#--"
-  				"-->" "->" "->>" "<<-" "<-" "<=<" "=<<" "<<=" "<==" "<=>" "<==>"
-  				"==>" "=>" "=>>" ">=>" ">>=" ">>-" ">-" "-<" "-<<" ">->" "<-<" "<-|"
-  				"<=|" "|=>" "|->" "<->" "<~~" "<~" "<~>" "~~" "~~>" "~>" "~-" "-~"
-  				"~@" "[||]" "|]" "[|" "|}" "{|" "[<" ">]" "|>" "<|" "||>" "<||"
-  				"|||>" "<|||" "<|>" "..." ".." ".=" "..<" ".?" "::" ":::" ":=" "::="
-  				":?" ":?>" "//" "///" "/*" "*/" "/=" "//=" "/==" "@_" "__" "???"
-  				"<:<" ";;;"))
+  				       "=:=" "=/=" "<=" ">=" "&&" "&&&" "&=" "++" "+++" "***" ";;" "!!"
+  				       "??" "???" "?:" "?." "?=" "<:" ":<" ":>" ">:" "<:<" "<>" "<<<" ">>>"
+  				       "<<" ">>" "||" "-|" "_|_" "|-" "||-" "|=" "||=" "##" "###" "####"
+  				       "#{" "#[" "]#" "#(" "#?" "#_" "#_(" "#:" "#!" "#=" "^=" "<$>" "<$"
+  				       "$>" "<+>" "<+" "+>" "<*>" "<*" "*>" "</" "</>" "/>" "<!--" "<#--"
+  				       "-->" "->" "->>" "<<-" "<-" "<=<" "=<<" "<<=" "<==" "<=>" "<==>"
+  				       "==>" "=>" "=>>" ">=>" ">>=" ">>-" ">-" "-<" "-<<" ">->" "<-<" "<-|"
+  				       "<=|" "|=>" "|->" "<->" "<~~" "<~" "<~>" "~~" "~~>" "~>" "~-" "-~"
+  				       "~@" "[||]" "|]" "[|" "|}" "{|" "[<" ">]" "|>" "<|" "||>" "<||"
+  				       "|||>" "<|||" "<|>" "..." ".." ".=" "..<" ".?" "::" ":::" ":=" "::="
+  				       ":?" ":?>" "//" "///" "/*" "*/" "/=" "//=" "/==" "@_" "__" "???"
+  				       "<:<" ";;;"))
     (global-ligature-mode t))
 #+end_src
 **** ~ultra-scroll~
@@ -774,7 +813,7 @@ This package is finally fixed! Nice, smooth dimming of inactive buffers, that no
     :diminish
     :config
     (setopt dimmer-adjustment-mode :foreground
-	  dimmer-fraction 0.3)
+  	  dimmer-fraction 0.3)
     (require 'dimmer)
     (dimmer-configure-which-key)
     (dimmer-configure-helm)
@@ -801,7 +840,7 @@ Makes certain parts of the screen change color when idle. A nicer alternative to
       :random-color-hue-range (0.0 1.0)
       :random-color-saturation-range (0.4 0.6)
       :random-color-luminance-range (0.2 0.3))
-      :speed 3.0)
+     :speed 3.0)
     (huecycle-when-idle 10))
 #+end_src
 **** ~pulsing-cursor~
@@ -868,8 +907,16 @@ Make hex color codes match their values.
   (use-package rainbow-mode
     :diminish
     :hook ((emacs-lisp-mode . rainbow-mode)
-	   (help-mode . rainbow-mode)
-	   ((css-mode html-mode sass-mode) . rainbow-mode)))
+  	 (help-mode . rainbow-mode)
+  	 ((css-mode html-mode sass-mode) . rainbow-mode)))
+#+end_src
+**** ~stripe-buffer~
+Highlight even and odd lines differently.
+#+begin_src emacs-lisp
+  (use-package stripe-buffer
+    :hook ((dired-mode . turn-on-stripe-buffer-mode)
+  	 (org-mode . turn-on-stripe-table-mode)
+  	 (markdown-mode . turn-on-stripe-table-mode)))
 #+end_src
 **** ~comet-trail~
 Make the cursor have a nice effect, like ~beacon~ but for within-buffer moves. This thing is so slow because it seemingly recalculates on *every move*...
@@ -877,11 +924,11 @@ Make the cursor have a nice effect, like ~beacon~ but for within-buffer moves. T
   (use-package comet-trail
     :disabled t
     :hook ((prog-mode . comet-trail-mode)
-	   (text-mode . comet-trail-mode)
-	   (fundamental-mode . comet-trail-mode))
+  	 (text-mode . comet-trail-mode)
+  	 (fundamental-mode . comet-trail-mode))
     :config
     (setopt comet-trail-minimum-distance 50
-	  comet-trail-speed 0.25))
+  	  comet-trail-speed 0.25))
 #+end_src
 **** ~symon~
 An extremely small system monitor in the idle modeline. Very good for full-screen Emacs, or when using X over SSH.
@@ -911,9 +958,9 @@ Add a little fortune to our scratch buffers.
 
   ;; now actually set our scratch buffer
   (setopt inhibit-startup-message t
-        initial-scratch-message (concat
-  			       (personal/prefix-comment
-  				(cowsay-string "Emacs has finished starting." "tux")) "\n\n"))
+  	initial-scratch-message (concat
+  				 (personal/prefix-comment
+  				  (cowsay-string "Emacs has finished starting." "tux")) "\n\n"))
 #+end_src
 **** ~org-superstar-mode~
 Makes ~org-mode~ have some prettier-looking bullet points!
@@ -946,7 +993,7 @@ Despite the name we never actually use any icons, at least not on the terminal. 
     :after corfu
     :custom
     (kind-icon-use-icons nil)
-    ; (kind-icon-default-face 'corfu-default) ; only needed with blend-background
+  					; (kind-icon-default-face 'corfu-default) ; only needed with blend-background
     :config
     (add-to-list 'corfu-margin-formatters #'kind-icon-margin-formatter))
 #+end_src
@@ -1005,7 +1052,7 @@ We also want to sometimes bump a font size with ~text-scale-increase~, but if we
 
   (add-hook 'markdown-mode-hook #'personal/prose-scale)
   (add-hook 'minibuffer-setup-hook
-          (lambda () (text-scale-set 0)))
+            (lambda () (text-scale-set 0)))
 #+end_src
 *** Packages: Overhauls
 Some parts of Emacs are fundamentally broken. These packages replace those features outright with new things. I note what's being replaced.
@@ -1020,8 +1067,8 @@ Fine on every OS but is a bit slower than ~vterm~.
     :config
     ;; perf boosting
     (setopt eat-minimum-latency 0.01
-  	eat-maximum-latency 0.05
-  	eat-term-scrollback-size (* 64 1024)))
+  	  eat-maximum-latency 0.05
+  	  eat-term-scrollback-size (* 64 1024)))
 #+end_src
 **** ~vterm~: Another Replacement of ~ansi-term~
 Faster but requires the compiled module so this can fail quite dramatically. It doesn't match theme colors, because the colors you want for editing code vs running commands should be different.
@@ -1032,21 +1079,21 @@ Faster but requires the compiled module so this can fail quite dramatically. It 
     ;; use classic terminal colors
     ;; also, this gives us a dark mode terminal all the time
     (setopt vterm-color-black   "#000000"
-  	vterm-color-white   "#ffffff"
-  	vterm-color-red     "#ff5c57"
-  	vterm-color-green   "#5af78e"
-  	vterm-color-yellow  "#f3f99d"
-  	vterm-color-blue    "#57c7ff"
-  	vterm-color-magenta "#ff6ac1"
-  	vterm-color-cyan    "#9aedfe")
+  	  vterm-color-white   "#ffffff"
+  	  vterm-color-red     "#ff5c57"
+  	  vterm-color-green   "#5af78e"
+  	  vterm-color-yellow  "#f3f99d"
+  	  vterm-color-blue    "#57c7ff"
+  	  vterm-color-magenta "#ff6ac1"
+  	  vterm-color-cyan    "#9aedfe")
     ;; perf boosting
     (setopt vterm-timer-delay 0.01
-  	vterm-max-scrollback 500
-  	vterm-module-cmake-args
-  	(concat "-DCMAKE_C_FLAGS='-O3 -march=native -mtune=native' "
-                "-DCMAKE_SHARED_LINKER_FLAGS='-Wl,-O2 -Wl,--as-needed' "
-                ;; "-DUSE_SYSTEM_LIBVTERM=yes"
-                )))
+  	  vterm-max-scrollback 500
+  	  vterm-module-cmake-args
+  	  (concat "-DCMAKE_C_FLAGS='-O3 -march=native -mtune=native' "
+  		  "-DCMAKE_SHARED_LINKER_FLAGS='-Wl,-O2 -Wl,--as-needed' "
+  		  ;; "-DUSE_SYSTEM_LIBVTERM=yes"
+  		  )))
 #+end_src
 **** ~detached~: Async Command Spawner
 TODO: seems useful, but need to read up more on it.
@@ -1083,7 +1130,7 @@ Flyspell is the worst. This is a much better alternative with almost no downside
     (jinx-delay 0.01))
 
   (setopt dictionary-use-single-buffer t
-  	    dictionary-server "dict.org")
+  	dictionary-server "dict.org")
 #+end_src
 **** ~dumb-jump~: Replacement of ~xref~
 This package lets you put in a symbol in nearly any language and quickly warp to its definition. It's way cooler than it sounds. Note that you use the binding ~M-.~ to activate it, as it's an ~xref~ backend.
@@ -1112,7 +1159,7 @@ Here's one that lets us see command feedback, like in ~zsh~:
 And we probably want some better suggestion feedback:
 #+begin_src emacs-lisp
   (use-package eshell-did-you-mean
-    ; doesn't work on Windows
+  					; doesn't work on Windows
     :if (or *is-a-linux* *is-a-mac*)
     :after eshell
     :config
@@ -1131,29 +1178,29 @@ These commands completely replace their stock components with upgrades. ~M-y~ to
 #+begin_src emacs-lisp
   (use-package consult
     :bind (
-  	   ;; Drop-in replacements
-  	   ("C-x b" . consult-buffer)     ; orig. switch-to-buffer
-  	   ("M-y"   . consult-yank-from-kill-ring)   ; orig. yank-pop
-  	   ;; Searching
-  	   ("M-s r" . consult-ripgrep)
-  	   ("M-s l" . consult-line)       ; Alternative: rebind C-s to use
-  	   ("M-s s" . consult-line)       ; consult-line instead of isearch, bind
-  	   ("M-s L" . consult-line-multi) ; isearch to M-s s
-  	   ("M-s o" . consult-outline)
-  	   ;; Isearch integration
-  	   :map isearch-mode-map
-  	   ("M-e" . consult-isearch-history)   ; orig. isearch-edit-string
-  	   ("M-s e" . consult-isearch-history) ; orig. isearch-edit-string
-  	   ("M-s l" . consult-line)            ; needed by consult-line to detect isearch
-  	   ("M-s L" . consult-line-multi)      ; needed by consult-line to detect isearch
-  	   )
+  	 ;; Drop-in replacements
+  	 ("C-x b" . consult-buffer)     ; orig. switch-to-buffer
+  	 ("M-y"   . consult-yank-from-kill-ring)   ; orig. yank-pop
+  	 ;; Searching
+  	 ("M-s r" . consult-ripgrep)
+  	 ("M-s l" . consult-line)       ; Alternative: rebind C-s to use
+  	 ("M-s s" . consult-line)       ; consult-line instead of isearch, bind
+  	 ("M-s L" . consult-line-multi) ; isearch to M-s s
+  	 ("M-s o" . consult-outline)
+  	 ;; Isearch integration
+  	 :map isearch-mode-map
+  	 ("M-e" . consult-isearch-history)   ; orig. isearch-edit-string
+  	 ("M-s e" . consult-isearch-history) ; orig. isearch-edit-string
+  	 ("M-s l" . consult-line)            ; needed by consult-line to detect isearch
+  	 ("M-s L" . consult-line-multi)      ; needed by consult-line to detect isearch
+  	 )
     :config
     ;; narrowing lets you restrict results to certain groups of candidates
     (setopt consult-narrow-key "<")
     ;; async speed improvements
     (setopt consult-async-input-debounce 0.05
-  	consult-async-input-throttle 0.1
-  	consult-async-refresh-delay 0.05))
+  	  consult-async-input-throttle 0.1
+  	  consult-async-refresh-delay 0.05))
 #+end_src
 **** ~vertico~: Better Vertical Completion
 Basically exactly what it says. Makes every menu better.
@@ -1166,7 +1213,7 @@ Basically exactly what it says. Makes every menu better.
     :ensure nil
     :after vertico
     :bind (:map vertico-map
-  		("M-DEL" . vertico-directory-delete-word)))
+  	      ("M-DEL" . vertico-directory-delete-word)))
 #+end_src
 **** ~marginalia~: Annotations with Completions
 Helps you figure out what exactly that option does.
@@ -1189,19 +1236,19 @@ It's a good replacement for ~company~.
   (use-package corfu
     :diminish corfu-mode corfu-popupinfo-mode
     :bind (:map corfu-map
-  		("RET" . nil)
-  		("M-d" . corfu-popupinfo-toggle))
+  	      ("RET" . nil)
+  	      ("M-d" . corfu-popupinfo-toggle))
     ;; if we use eshell, be careful not to autocomplete
     :hook (eshell-mode-hook . (lambda ()
-  				(setopt-local corfu-auto nil)
-  				(corfu-mode)))
+  			      (setopt-local corfu-auto nil)
+  			      (corfu-mode)))
     :config
     ;; use corfu in the minibuffer
     (defun corfu-enable-always-in-minibuffer ()
       (unless (or (bound-and-true-p mct--active)
-  		    (bound-and-true-p vertico--input))
-      (setopt-local corfu-auto nil)
-      (corfu-mode 1)))
+  		(bound-and-true-p vertico--input))
+        (setopt-local corfu-auto nil)
+        (corfu-mode 1)))
     (add-hook 'minibuffer-setup-hook #'corfu-enable-always-in-minibuffer 1)
     ;; automatic completion!
     (setopt corfu-auto t
@@ -1278,7 +1325,7 @@ The existing document viewer is terrible. This is a bit better, but it does requ
     :config
     (pdf-loader-install)
     (add-to-list 'auto-mode-alist '("\\.pdf\\'" . pdf-view-mode)
-    (setopt pdf-view-display-size 'fit-page)))
+  	       (setopt pdf-view-display-size 'fit-page)))
 #+end_src
 We should also remember our position within those documents:
 #+begin_src emacs-lisp
@@ -1329,6 +1376,7 @@ This saves typing a lot of the same things over and over again by automatically 
 #+begin_src emacs-lisp
   (use-package yasnippet
     :diminish yasx
+    :diminish yas
     :config
     (yas-global-mode 1))
 
@@ -1360,7 +1408,7 @@ Transient interfaces are great! They are amazing to use in ~magit~, this brings 
 #+begin_src emacs-lisp
   (use-package disproject
     :bind (:map ctl-x-map
-	    ("p" . disproject-dispatch)))
+  	      ("p" . disproject-dispatch)))
 #+end_src
 **** ~macrostep~: Expand Emacs Lisp Macros
 An incredibly useful feature for debugging Elisp, this lets you step through a macro as it's being evaluated. This can help a lot with nested macros, as otherwise the sequence of operations can be quite confusing.
@@ -1371,11 +1419,11 @@ An incredibly useful feature for debugging Elisp, this lets you step through a m
 ~desktop.el~ is slow, annoying, and makes getting out of Emacs in a hurry a real pain. This is much faster:
 #+begin_src emacs-lisp
   (use-package easysession
-    :diminish
+    :diminish EasySessionSv
     :custom
     (easysession-save-interval (* 3 60)) ;; once every 3 minutes
-    (easysession-save-mode-lighter-show-session-name t)
-    (easysession-save-mode-line-misc-info t)
+    (easysession-save-mode-lighter-show-session-name nil)
+    (easysession-save-mode-line-misc-info nil)
     :init
     (add-hook 'emacs-startup-hook #'easysession-load-including-geometry 102)
     (add-hook 'emacs-startup-hook #'easysession-save-mode 103))
@@ -1412,7 +1460,7 @@ A complete Git client is a pretty amazing thing.
   (use-package magit
     :bind ("C-x g" . magit-status))
 #+end_src
-We'll also grab a few bonus features as well:
+We'll also grab a few bonus features as well, such as TODOs:
 #+begin_src emacs-lisp
   (use-package magit-todos
     :after magit
@@ -1420,12 +1468,28 @@ We'll also grab a few bonus features as well:
     :config
     (magit-todos-mode 1))
 #+end_src
-**** ~forge~: A Git Forge Client
+Refresh ~magit~ every time the file tree changes (including when using ~git~ on the command line, outside of Emacs):
+#+begin_src emacs-lisp
+  (use-package magit-filenotify
+    :after magit
+    :diminish
+    :hook (magit-status-mode . magit-filenotify-mode))
+#+end_src
+Also, search through everything in just the local repository with ~C-c p~:
+#+begin_src emacs-lisp
+  (use-package magit-find-file
+    :bind ("C-c p" . magit-find-file-completing-read))
+#+end_src
+Finally, ~pre-commit~ support, activated with ~@~ when inside ~magit~:
+#+begin_src emacs-lisp
+  (use-package magit-pre-commit
+    :after magit)
+#+end_src
+**** ~Forge~: A Git Forge Client
 Like ~magit~ but for GitHub. Invaluable.
 #+begin_src emacs-lisp
   ;; needed for github secret
   (setopt auth-sources '("~/.authinfo"))
-
   (use-package forge
     :after magit)
 #+end_src
@@ -1435,10 +1499,10 @@ I don't use this very often, but it solves a very serious problem of Emacs missi
   (use-package gptel
     :config
     (setopt gptel-model 'gemma4:e4b-mlx
-  	gptel-backend (gptel-make-ollama "Ollama"
-  	 :host "localhost:11434"
-  	 :stream t
-  	 :models '(gemma4:12b-mlx gemma4:e4b-mlx))))
+  	  gptel-backend (gptel-make-ollama "Ollama"
+  			  :host "localhost:11434"
+  			  :stream t
+  			  :models '(gemma4:12b-mlx gemma4:e4b-mlx))))
 #+end_src
 **** ~igist~: GitHub Gist Client
 It's useful for quickly sharing code with someone, and has a nice transient interface. This is probably the best solution for collaborating on a document, which Emacs still can't really do yet.
@@ -1458,20 +1522,20 @@ This is a crazy package. You can basically select everything you want in one fel
 #+begin_src emacs-lisp
   (use-package multiple-cursors
     :bind (("C-S-c C-S-c" . mc/edit-lines)
-	   ("C->" . mc/mark-next-like-this)
-	   ("C-<" . mc/mark-previous-like-this)
-	   ("C-c C-<" . mc/mark-all-like-this)))
+  	 ("C->" . mc/mark-next-like-this)
+  	 ("C-<" . mc/mark-previous-like-this)
+  	 ("C-c C-<" . mc/mark-all-like-this)))
 #+end_src
 **** ~binky~: Jumping Cursor
 This is another crazy package. You can select many different cursor positions as registers, marked with single keys, and jump around to them. it's a lot like Vim's feature for this, but better because it's got really good memory.
 #+begin_src emacs-lisp
   (use-package binky
     :bind (("C-c b b" . binky-binky)
-	   ("C-c b c" . binky-clean)
-	   ("C-c b s" . binky-save)
-	   ("C-c b r" . binky-restore)
-	   ("C-c b n" . binky-next-in-buffer)
-	   ("C-c b p" . binky-previous-in-buffer))
+  	 ("C-c b c" . binky-clean)
+  	 ("C-c b s" . binky-save)
+  	 ("C-c b r" . binky-restore)
+  	 ("C-c b n" . binky-next-in-buffer)
+  	 ("C-c b p" . binky-previous-in-buffer))
     :config
     (progn
       (binky-mode)
@@ -1543,10 +1607,10 @@ So shockingly Emacs doesn't ship with code folding outside of Org. This fixes th
     :diminish global-treesit-fold-indicators-mode
     :bind
     (:map treesit-fold-mode-map
-	  ("<backtab>" . treesit-fold-toggle))
+  	("<backtab>" . treesit-fold-toggle))
     :config
     (setopt treesit-fold-line-count-show t
-	  treesit-fold-line-count-format " <%d lines> ")
+  	  treesit-fold-line-count-format " <%d lines> ")
     (global-treesit-fold-indicators-mode))
 #+end_src
 **** ~flycheck~: Frontend to ~lsp-mode~
@@ -1560,14 +1624,14 @@ It's pretty good these days, but the choice to make ~company~ mandatory was very
   (use-package lsp-mode
     :hook (lsp-completion-mode . (lambda ()
   				 (setopt-local completion-at-point-functions
-  					     (list (cape-capf-super #'lsp-completion-at-point
-  								    #'yasnippet-capf)
-  						   #'cape-file))))
+  					       (list (cape-capf-super #'lsp-completion-at-point
+  								      #'yasnippet-capf)
+  						     #'cape-file))))
     :bind
     (:map lsp-mode-map
-  	  ("C-c d" . lsp-describe-thing-at-point)
-  	  ("C-c u" . lsp-ui-imenu)
-  	  ("M-i" . lsp-ui-doc-focus-frame)))
+  	("C-c d" . lsp-describe-thing-at-point)
+  	("C-c u" . lsp-ui-imenu)
+  	("M-i" . lsp-ui-doc-focus-frame)))
 #+end_src
 **** ~dape~: Debug Adapter Protocol support
 Probably the best debugging option that isn't torturous to use. Only works on a relatively minimal set of compiled languages at the time of writing.
@@ -1598,9 +1662,9 @@ Very easy in-buffer reference for Fortran and C code. Doesn't work over TRAMP, s
 #+begin_src emacs-lisp
   (use-package disaster
     :bind (:map c-mode-map
-  	 ("C-c d" . disaster)
-  	 :map fortran-mode-map
-  	 ("C-c d" . disaster)))
+  	      ("C-c d" . disaster)
+  	      :map fortran-mode-map
+  	      ("C-c d" . disaster)))
 #+end_src
 **** Language: LaTeX
 LaTeX is very cool and Emacs is really, really good at this mode nowadays. Let's set up a nicer environment first:
@@ -1608,19 +1672,19 @@ LaTeX is very cool and Emacs is really, really good at this mode nowadays. Let's
   (use-package auctex
     ;; the weird name diffs it from the default installed one
     :hook ((LaTeX-mode . outline-minor-mode) ;; tab through our document like Org
-  	   (LaTeX-mode . prettify-symbols-mode) ;; math looks way nicer
-  	   (LaTeX-mode . LaTeX-math-mode) ;; make math nicer
-  	   (LaTeX-mode . visual-line-mode)
-  	   (LaTeX-mode . TeX-PDF-mode))
+  	 (LaTeX-mode . prettify-symbols-mode) ;; math looks way nicer
+  	 (LaTeX-mode . LaTeX-math-mode) ;; make math nicer
+  	 (LaTeX-mode . visual-line-mode)
+  	 (LaTeX-mode . TeX-PDF-mode))
     :config
     (setopt TeX-auto-save t
-  	    TeX-parse-self t
-  	    TeX-save-query nil
-  	    TeX-preview-default nil
-  	    TeX-source-correlate-method 'synctex
-  	    TeX-source-correlate-start-server t
-  	    TeX-view-program-selection '((output-pdf "PDF Tools"))
-  	    TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
+  	  TeX-parse-self t
+  	  TeX-save-query nil
+  	  TeX-preview-default nil
+  	  TeX-source-correlate-method 'synctex
+  	  TeX-source-correlate-start-server t
+  	  TeX-view-program-selection '((output-pdf "PDF Tools"))
+  	  TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
     (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
 
   ;; use TAB to jump around the mode really, really fast
@@ -1638,6 +1702,35 @@ Cool. Now let's set up automatic previews:
 
   (add-hook 'after-save-hook #'personal/latex-auto-compile)
 #+end_src
+**** Language: Julia
+The scientific programming language of the future (and also right now, if you're working with cool people).
+#+begin_src emacs-lisp
+  (use-package julia-mode)
+#+end_src
+We also want the Julia ~tree-sitter~ mode as it's a direct superset of the stock one:
+#+begin_src emacs-lisp
+  (use-package julia-ts-mode
+    :mode "\\.jl$")
+#+end_src
+Also important to configure the LSP, which is ~JETLS.jl~ because ~LanguageServer.jl~ is unusable trash that only works in VS Code.
+#+begin_src emacs-lisp
+  ;; the maintainer for lsp-julia is dumb
+  ;; so here's my much better mode
+  (with-eval-after-load 'lsp-mode
+    (lsp-register-client
+     (make-lsp-client
+      :new-connection (lsp-stdio-connection
+  		     '("jetls" "serve"))
+      :major-modes '(julia-mode julia-ts-mode)
+      :language-id "julia"
+      :server-id 'jetls)))
+#+end_src
+A REPL would be nice too:
+#+begin_src emacs-lisp
+  (use-package julia-snail
+    :hook (julia-mode . julia-snail-mode))
+#+end_src
+Note that this package above depends on ~vterm~; go to its GitHub to use the ~eat~ alternative version. 
 **** Language: MATLAB
 To be honest, I think I can make this do more, such as having MATLAB as a language server. How exactly is a bit difficult. This code seems to maybe have some answers? https://github.com/karthink/.emacs.d/blob/master/init.el#L1660
 
@@ -1650,7 +1743,7 @@ The actual mode is bundled with Emacs, but the default interpreter is trash. Let
 #+begin_src emacs-lisp
   (when (executable-find "ipython")
     (setopt python-shell-interpreter "ipython"
-	  python-shell-interpreter-args "-i --simple-prompt"))
+  	  python-shell-interpreter-args "-i --simple-prompt"))
 #+end_src
 Basically a requirement to use with uv:
 #+begin_src emacs-lisp
@@ -1663,8 +1756,8 @@ This is also useful for ~lsp-mode~:
 #+begin_src emacs-lisp
   (use-package lsp-pyright
     :hook (python-mode . (lambda ()
-			   (require 'lsp-pyright)
-			   (lsp-deferred))))
+  			 (require 'lsp-pyright)
+  			 (lsp-deferred))))
 #+end_src
 Then do very lazy autoformatting with Ruff at save-time.
 #+begin_src emacs-lisp
@@ -1675,10 +1768,10 @@ Then do very lazy autoformatting with Ruff at save-time.
 #+end_src
 Also, we need a hook to keep flycheck around just for ruff:
 #+begin_src emacs-lisp
-(add-hook 'lsp-after-open-hook
-          (lambda ()
-            (when (derived-mode-p 'python-mode)
-              (flycheck-add-next-checker 'lsp '(warning . python-ruff)))))
+  (add-hook 'lsp-after-open-hook
+            (lambda ()
+              (when (derived-mode-p 'python-mode)
+                (flycheck-add-next-checker 'lsp '(warning . python-ruff)))))
 #+end_src
 This lets us edit PIP requirements:
 #+begin_src emacs-lisp
@@ -1752,12 +1845,12 @@ These are all the things that are needed for occasional, one-off editing and rar
 **** Mode: Cask
 For developing Elisp, not the one used in macOS Homebrew.
 #+begin_src emacs-lisp
-  (use-package cask-mode)
+(use-package cask-mode)
 #+end_src emacs-lisp
 **** Mode: Lua
 #+begin_src emacs-lisp
-  (use-package lua-mode
-    :mode "\\.lua\\'")
+(use-package lua-mode
+:mode "\\.lua\\'")
 #+end_src emacs-lisp
 **** Mode: CMake
 #+begin_src emacs-lisp
@@ -1893,5 +1986,5 @@ This is a good snippet to have right at the end, so that we know exactly how lon
 
 However, it's important to note that this doesn't fully capture the length of init-time, as ~elpaca~ can load lazily.
 #+begin_src emacs-lisp
-(message "[init.el] Startup finished in: %s" (emacs-init-time))
+  (message "[init.el] Startup finished in: %s" (emacs-init-time))
 #+end_src
