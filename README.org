@@ -83,6 +83,17 @@ We didn't have the frame loaded and rendered in until this point, so we couldn't
   	show-trailing-whitespace nil
   	indicate-buffer-boundaries 'left)
 
+  ;; reduce input latency on pgtk Linux
+  (when (boundp 'pgtk-wait-for-event-timeout)
+    (setq pgtk-wait-for-event-timeout 0.001))
+
+  ;; reduce querying of pointer location in X11
+  (setq mouse-highlight nil)
+
+  ;; reduce clipboard X11 latency
+  (setq x-select-enable-clipboard-manager nil
+        x-selection-timeout 100)
+
   ;; horizontal mouse scrolling
   (setopt mouse-wheel-tilt-scroll t
   	mouse-wheel-flip-direction t)
@@ -110,8 +121,18 @@ These go first, so that even if loading the rest of this file fails, there's at 
   (global-set-key (kbd "C-x C-b") 'ibuffer)
   (xterm-mouse-mode +1)
 
+  ;; make paren highlighting faster
+  (setq short-paren-delay 0.05)
+
   ;; delete trailing whitespace
   (delete-trailing-whitespace-mode +1)
+
+  ;; show tooltips faster
+  (setq tooltip-delay 0.3
+        tooltip-short-delay 0.08)
+
+  ;; make icomplete even faster
+  (setq icomplete-compute-delay 0.01)
 
   ;; stop yapping during init 
   (setq-default native-comp-async-report-warnings-errors 'silent
@@ -318,7 +339,7 @@ These go first, so that even if loading the rest of this file fails, there's at 
 
   ;; when we're a mac, use mdfind not find
   (when *is-a-mac*
-    (setopt locate-command "mdfind"))
+    (setopt locate-command "mdfind")) 
 
   ;; make TRAMP faster
   (use-package tramp
@@ -524,14 +545,14 @@ This is in stock as of Emacs 30, so this just enables it with diminish, and does
   (use-package which-key
     :diminish
     :config
+    (setq which-key-idle-delay 0.5)
     (which-key-mode))
 #+end_src
 **** ~sudo-edit~ & ~auto-sudoedit~
 We want to be able to edit as root, but only on Unix and Linux.
 #+begin_src emacs-lisp
   (use-package sudo-edit
-    :if (or *is-a-linux* *is-a-unix*)
-    )
+    :if (or *is-a-linux* *is-a-unix*))
 #+end_src
 Also, automatically retry if we can't do it for whatever reason.
 #+begin_src emacs-lisp
@@ -540,6 +561,12 @@ Also, automatically retry if we can't do it for whatever reason.
     :config
     (require 'auto-sudoedit)
     (auto-sudoedit-mode 1))
+#+end_src
+**** ~friendly-tramp-path~
+Make it faster to type TRAMP paths.
+#+begin_src emacs-lisp
+  (use-package friendly-tramp-path
+    :after tramp)
 #+end_src
 **** ~async~
 Asynchronous compilation for Emacs. Note: this can sometimes really delay startup, and after startup there might still be Emacs processes running in the background, so be mindful of that if you're in a hurry.
@@ -677,7 +704,7 @@ This category is for packages which make Emacs' interface look nicer.
 **** Themes: ~gruvbox~, ~solarized~, ~vscode-dark-plus~, ~waher~, ~modus~
 Gruvbox is simply the best theme ever invented, but sometimes I like to have some others. All are installed, so it's easy to change them. At present, the theme system also can intelligent switch between night and day mode. Nice!
 #+begin_src emacs-lisp
-  					; ignore asking if custom themes are safe
+  ; ignore asking if custom themes are safe
   (setopt custom-safe-themes t)
 
   (use-package solarized-theme
@@ -689,7 +716,6 @@ Gruvbox is simply the best theme ever invented, but sometimes I like to have som
   	  x-underline-at-descent-line t)
     :config
     (load-theme 'solarized-selenized-black t))
-
 #+end_src
 And then, of course, ~auto-dark-mode~:
 #+begin_src emacs-lisp
@@ -1114,8 +1140,8 @@ We often need more than one terminal when we're doing things. Let's add that:
 #+end_src
 Oh, and add that for ~vterm~, too:
 #+begin_src emacs-lisp
-  (use-package multi-vterm
-    :after vterm)
+  ;;(use-package multi-vterm
+;;    :after vterm)
 #+end_src
 This is such a good feature that stock ~vterm~ should never be used, only ~multi-vterm~.
 **** ~jinx~: Replacement of ~flyspell~
@@ -1202,6 +1228,15 @@ These commands completely replace their stock components with upgrades. ~M-y~ to
   	  consult-async-input-throttle 0.1
   	  consult-async-refresh-delay 0.05))
 #+end_src
+We can easily improve the directory search experience as well:
+#+begin_src emacs-lisp
+  (use-package consult-dir
+    :ensure t
+    :bind (("C-x C-d" . consult-dir)
+           :map vertico-map
+           ("C-x C-d" . consult-dir)
+           ("C-x C-j" . consult-dir-jump-file)))
+#+end_src
 **** ~vertico~: Better Vertical Completion
 Basically exactly what it says. Makes every menu better.
 #+begin_src emacs-lisp
@@ -1250,6 +1285,8 @@ It's a good replacement for ~company~.
         (setopt-local corfu-auto nil)
         (corfu-mode 1)))
     (add-hook 'minibuffer-setup-hook #'corfu-enable-always-in-minibuffer 1)
+    ;; make corfu much faster
+    (setq corfu-auto-delay 0.1)
     ;; automatic completion!
     (setopt corfu-auto t
   	  ;; I don't care what the warnings say, this setting rules
