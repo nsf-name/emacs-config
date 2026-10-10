@@ -8,7 +8,7 @@ This file is split up by packages, grouped in a way that I think is logical. At 
 ** How to Install 💻
 Firstly, make sure the following programs are installed:
 - ~git~ (used by ~elpaca~)
-- ~gcc~ and ~cmake~, used for ~vterm~ (optional, if not just say ~n~ when asked on install and add ~:disable t~ to ~vterm~)
+- ~gcc~ and ~cmake~ and ~libvterm~, used for ~vterm~ (optional, if not just say ~n~ when asked on install and add ~:disable t~ to ~vterm~)
 
 Ideally in a future version of this configuration, it would prompt you to install these, but that's currently not the case. I'll fix that eventually.
 
@@ -18,6 +18,7 @@ Ideally in a future version of this configuration, it would prompt you to instal
 - Make sure that Emacs makes sure you have all the packages you need, and gracefully degrades on failure
 - Add ~puni~ rather than ~paredit~
 - Add ~consult-gh~ support
+- ~combobulate~ at some point in the future
 ** The Actual Configuration 📖
 *** Lexical Scoping
 Since Emacs 31, dynamic scoping is basically deprecated, so this has to be at the start of any config file.
@@ -617,8 +618,7 @@ Extremely useful when you've got a lot of these on the screen.
 #+begin_src emacs-lisp
   (use-package switch-window
     :config
-    (setopt switch-window-shortcut-style 'qwerty
-  	  switch-window-timeout nil)
+    (setopt switch-window-shortcut-style 'qwerty)
     :bind
     ("C-x o". switch-window))
 #+end_src
@@ -854,26 +854,10 @@ Cool package that highlights where your cursor is on switched buffers.
     :config
     (beacon-mode 1))
 #+end_src
-**** ~huecycle~
-Makes certain parts of the screen change color when idle. A nicer alternative to ~zone~. May want to disable; raises CPU while idle. This simplifies life a lot.
-#+begin_src emacs-lisp
-  ;; TODO: doesn't actually work, package is bugged
-  (use-package huecycle
-    :disabled t
-    :config
-    (huecycle-set-faces
-     ((background . hl-line)
-      :random-color-hue-range (0.0 1.0)
-      :random-color-saturation-range (0.4 0.6)
-      :random-color-luminance-range (0.2 0.3))
-     :speed 3.0)
-    (huecycle-when-idle 10))
-#+end_src
 **** ~pulsing-cursor~
 Blink and fade the cursor for a RGB-lighting like effect.
 #+begin_src emacs-lisp
   (use-package pulsing-cursor
-    :ensure nil
     :elpaca (pulsing-cursor :host github :repo "jasonjckn/pulsing-cursor")
     :diminish
     :config
@@ -995,6 +979,14 @@ Makes ~org-mode~ have some prettier-looking bullet points!
     :diminish
     :hook (org-mode . org-superstar-mode))
 #+end_src
+**** ~valign~
+Fixes Markdown and Org tables to be rendered with pixel-perfect connectors.
+#+begin_src emacs-lisp
+  (use-package valign
+    :diminish
+    :hook ((org-mode . valign-mode)
+  	 (markdown-mode .valign-mode)))
+#+end_src
 **** ~dired-fl~
 This adds some special fonts to the ~dired~ mode to make it nicer.
 #+begin_src emacs-lisp
@@ -1034,7 +1026,11 @@ Running the ~compile~ command now does more useful things with better syntax hig
 **** ~olivetti~
 This package allows you to turn on edges to your buffer, kind of like in Microsoft Word with its page limit. This way, no matter how big your frame is, your buffer still kinda looks nice. Which is a cool feature to have for editing text documents, so that text isn't strewn across the whole page.
 #+begin_src emacs-lisp
-  (use-package olivetti)
+  (use-package olivetti
+    :diminish
+    :hook ((markdown-mode . olivetti-mode)
+  	 (org-mode . olivetti-mode)
+  	 (text-mode . olivetti-mode)))
 #+end_src
 **** ~pretty-sha-path~
 Tidy up GUIX/Nix directories when you see them in Emacs.
