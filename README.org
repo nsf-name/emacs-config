@@ -46,7 +46,7 @@ And then install ~diminish~ and ~transient~ since we'll call them a lot later:
 
   (elpaca-wait)
 #+end_src
-We need to now ~exec-path-from-shell~ first, before anything else:
+We need to now ~exec-path-from-shell~ and run ~no-littering~ first, before anything else:
 #+begin_src emacs-lisp
   (use-package exec-path-from-shell
     :ensure (:wait t)
@@ -54,6 +54,26 @@ We need to now ~exec-path-from-shell~ first, before anything else:
     :init
     (when (memq window-system '(mac ns x))
       (exec-path-from-shell-initialize)))
+
+  (use-package no-littering
+    :ensure (:wait t)
+    :demand t
+    :config
+    (require 'no-littering)
+    ;; apply to backups too
+    (no-littering-theme-backups)
+    ;; move lock files
+    (let ((dir (no-littering-expand-var-file-name "lock-files/")))
+      (make-directory dir t)
+      (setq lock-file-name-transforms `((".*" ,dir t))))
+    ;; move recentf file
+    (require 'recentf)
+    (add-to-list 'recentf-exclude
+                 (recentf-expand-file-name no-littering-var-directory))
+    (add-to-list 'recentf-exclude
+                 (recentf-expand-file-name no-littering-etc-directory))
+    ;; custom-file should be in etc
+    (setq custom-file (no-littering-expand-etc-file-name "custom.el")))
 #+end_src
 Now sync everything, one more time.
 #+begin_src emacs-lisp
@@ -118,6 +138,10 @@ We didn't have the frame loaded and rendered in until this point, so we couldn't
 *** Behavior Fixes
 These go first, so that even if loading the rest of this file fails, there's at least some fixes to the parts of Emacs which can largely be considered to be "bad defaults". At some point, I need to go back and move this into the ~emacs~ metapackage.
 #+begin_src emacs-lisp
+  ;; I use this for my own stuff,
+  ;; so we'll disable Emacs' stupid use of this key.
+  (global-unset-key (kbd "C-q"))
+
   ;; genuinely baffling how this isn't the default
   (global-set-key (kbd "C-x C-b") 'ibuffer)
   (xterm-mouse-mode +1)
@@ -134,6 +158,9 @@ These go first, so that even if loading the rest of this file fails, there's at 
 
   ;; make icomplete even faster
   (setq icomplete-compute-delay 0.01)
+
+  ;; highlight elisp correctly
+  (setq-default elisp-fontify-semantically t)
 
   ;; stop yapping during init 
   (setq-default native-comp-async-report-warnings-errors 'silent
@@ -160,7 +187,8 @@ These go first, so that even if loading the rest of this file fails, there's at 
   (setopt redisplay-skip-fontification-on-input t)
 
   ;; make lsp mode faster
-  (setopt read-process-output-max (* 16 1024 1024)) ;; 16MB
+  (setopt read-process-output-max (* 16 1024 1024)
+  	  process-adaptive-read-buffering nil)
 
   ;; don't render the cursor in non-focused windows
   (setopt cursor-in-non-selected-windows nil)
@@ -592,7 +620,7 @@ This is extremely useful since we often want to run a command on the line, but d
     :diminish whole-line-or-region-local-mode
     :hook (after-init . whole-line-or-region-global-mode))
 #+end_src
-**** ~wgrep~
+**** ~grep~
 This package lets us mass edit search results, which is amazing!
 #+begin_src emacs-lisp
   (use-package wgrep
@@ -679,6 +707,12 @@ Incredibly useful package.
 Maybe useful under a particularly strange set of circumstances?
 #+begin_src emacs-lisp
   (use-package insert-random)
+#+end_src
+**** ~string-inflection~
+Quickly switch a string between any of the common standards of capitalization that different programming languages use.
+#+begin_src emacs-lisp
+  (use-package string-inflection
+    :bind (("C-q C-u" . string-inflection-all-cycle)))
 #+end_src
 **** ~evil-nerd-commenter~
 Despite the name, it's not really required to use ~evil~ for it. What it actually does is quickly uncomments or comments out a line. It's a bit smarter than the default one because it works on multiple lines if you combine it with ~C-u~.
@@ -853,6 +887,14 @@ Cool package that highlights where your cursor is on switched buffers.
     :if window-system
     :config
     (beacon-mode 1))
+#+end_src
+**** ~pulsar~
+In this same family of "make your cursor highlight on action" packages is ~pulsar~. Unlike ~beacon~, it's a bit more general and indicates "you have run some in-buffer command".
+#+begin_src emacs-lisp
+  (use-package pulsar
+    :diminish
+    :config
+    (pulsar-global-mode t))
 #+end_src
 **** ~pulsing-cursor~
 Blink and fade the cursor for a RGB-lighting like effect.
@@ -1222,7 +1264,9 @@ These commands completely replace their stock components with upgrades. ~M-y~ to
     ;; async speed improvements
     (setopt consult-async-input-debounce 0.05
   	  consult-async-input-throttle 0.1
-  	  consult-async-refresh-delay 0.05))
+  	  consult-async-refresh-delay 0.05)
+    ;; use consult for xrefs
+    (setq xref-show-xrefs-function 'consult-xref))
 #+end_src
 We can easily improve the directory search experience as well:
 #+begin_src emacs-lisp
@@ -1949,10 +1993,13 @@ AppleScript is not great.
   (use-package json-mode
     :mode "\\.json\\'")
 #+end_src
-**** Mode: YAML
+**** Mode: YAML & TOML
 #+begin_src emacs-lisp
   (use-package yaml-mode
     :mode "\\.yml\\.erb\\'")
+
+  (use-package toml-mode
+    :mode "\\(poetry\\|uv\\)\\.lock\\'")
 #+end_src
 **** Mode: Unix Log
 #+begin_src emacs-lisp
