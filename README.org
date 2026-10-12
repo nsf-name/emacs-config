@@ -453,6 +453,13 @@ This is just a virtual package; Tramp is already installed in Emacs, this just c
       (setq tramp-ssh-controlmaster-options
     	"-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=yes"))
 #+end_src
+**** ~uptimes~
+Extremely dumb feature for tracking how long Emacs has been open. I don't care about this being super accurate, but it should be loaded reasonably early to be effective.
+#+begin_src emacs-lisp
+  (use-package uptimes
+    :config
+    (require 'uptimes))
+#+end_src
 **** ~ibuffer-vc~
 Use Git as a way to organize and group buffers.
 #+begin_src emacs-lisp
