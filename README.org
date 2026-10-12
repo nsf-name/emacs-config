@@ -323,7 +323,15 @@ This is its own section because even if we can't install any packages, it's nice
     ;; trigger dired reloads even faster, but not on tramp
     (setopt dired-auto-revert-buffer 'dired-directory-changed-p)
     (setopt dired-do-revert-buffer (lambda (dir)
-  				   (not (file-remote-p dir)))))
+  				   (not (file-remote-p dir))))
+    ;; pair matching brackets
+    (setq electric-pair-pairs '(
+                             (?\{ . ?\})
+                             (?\( . ?\))
+                             (?\[ . ?\])
+                             (?\" . ?\")
+                             ))
+    (electric-pair-mode t))
 #+end_src
 *** Utility Functions
 These are things that I use that are nice to have but aren't part of GNU Emacs. Although many of them are basically replaced by ~crux~ at this point, it's nice to keep around a vanilla implementation in case packages can't be installed.
@@ -1792,6 +1800,10 @@ This lets us edit PIP requirements:
 #+begin_src emacs-lisp
   (use-package pip-requirements)
 #+end_src
+Also add Cython support:
+#+begin_src emacs-lisp
+  (use-package cython-mode)
+#+end_src
 **** Language: R
 R is always going to be subpar in Emacs, but we can make it at least mildly less painful to use. ESS is okay I guess? I'd much rather use RStudio instead though.
 #+begin_src emacs-lisp
@@ -1835,6 +1847,22 @@ Also, with some cool magic we can use ~eww~ to preview what it'll look like if w
 The mode doesn't come with Emacs, plus we'd like the newest one always:
 #+begin_src emacs-lisp
   (use-package rust-mode)
+#+end_src
+**** Language: Swift
+The mode doesn't come with Emacs:
+#+begin_src emacs-lisp
+  (use-package swift-mode) 
+#+end_src
+**** Language: Gleam
+The mode doesn't come with Emacs:
+#+begin_src emacs-lisp
+  (use-package gleam-ts-mode
+    :mode "\\.gleam\\'")
+#+end_src
+**** Language: Clojure
+The mode doesn't come with Emacs:
+#+begin_src emacs-lisp
+  (use-package clojure-mode)
 #+end_src
 **** Language: Nix
 This mode brings a lot to the table, but almost never actually need all it brings.
@@ -1949,6 +1977,14 @@ AppleScript is not great.
   (use-package jinja2-mode
     :mode "\\.j2\\'")
 #+end_src
+**** Mode: GLSL
+#+begin_src emacs-lisp
+  (use-package glsl-mode)
+#+end_src
+**** Mode: Ninja Build Files
+#+begin_src emacs-lisp
+  (use-package ninja-mode)
+#+end_src
 **** Mode: phpBB
 #+begin_src emacs-lisp
   (use-package bbcode-mode)
@@ -1972,11 +2008,33 @@ AppleScript is not great.
 #+begin_src emacs-lisp
   (use-package dockerfile-mode)
 #+end_src
+**** Mode: Jenkinsfile
+#+begin_src emacs-lisp
+  (use-package jenkinsfile-mode)
+#+end_src
 **** Mode: AppArmor Config
 #+begin_src emacs-lisp
   (use-package apparmor-mode
     :config
     (require 'apparmor-mode))
+#+end_src
+**** Mode: NGINX Config
+#+begin_src emacs-lisp
+  (use-package nginx-mode)
+#+end_src
+**** Mode: Apache Config
+#+begin_src emacs-lisp
+  (use-package apache-mode)
+#+end_src
+**** Mode: Systemd Config
+#+begin_src emacs-lisp
+  (use-package systemd)
+#+end_src
+**** Mode: Systemd Journal
+#+begin_src emacs-lisp
+  (use-package journalctl-mode
+    ;; useless over TRAMP
+    :if *is-a-linux*)
 #+end_src
 **** Mode: FVWM Config
 #+begin_src emacs-lisp
