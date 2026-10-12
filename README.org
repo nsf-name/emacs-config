@@ -272,8 +272,8 @@ These go first, so that even if loading the rest of this file fails, there's at 
 
   ;; don't litter file system with *~ backup files; put them all inside
   ;; ~/.emacs.d/backup or wherever
-  (let ((auto-dir (expand-file-name "autosaves/" user-emacs-directory))
-        (backup-dir (expand-file-name "backups/" user-emacs-directory)))
+  (let ((auto-dir (expand-file-name "var/autosaves/" user-emacs-directory))
+        (backup-dir (expand-file-name "var/backups/" user-emacs-directory)))
     (dolist (dir (list auto-dir backup-dir))
       (unless (file-exists-p dir) (make-directory dir t)))
     (setopt backup-directory-alist `(("." . ,backup-dir))
@@ -809,12 +809,13 @@ Makes the buffers that aren't part of real files a different color than those th
     (solaire-global-mode +1))
 #+end_src
 **** ~persist-text-scale~
-Persist the scale of the text between reloads!
+Persist the scale of the text between reloads! Should probably upstream this fix into ~no-littering~ at some point.
 #+begin_src emacs-lisp
   (use-package persist-text-scale
     :diminish
     :config
-    (setopt persist-text-scale-autosave-interval (* 7 60))
+    (setopt persist-text-scale-autosave-interval (* 7 60)
+  	  persist-text-scale-file (expand-file-name "var/persist-text-scale" user-emacs-directory))
     (persist-text-scale-mode 1))
 #+end_src
 **** ~modern-fringes~
@@ -1501,6 +1502,7 @@ An incredibly useful feature for debugging Elisp, this lets you step through a m
     (easysession-save-interval (* 3 60)) ;; once every 3 minutes
     (easysession-save-mode-lighter-show-session-name nil)
     (easysession-save-mode-line-misc-info nil)
+    (easysession-directory (expand-file-name "var/easysession" user-emacs-directory))
     :init
     (add-hook 'emacs-startup-hook #'easysession-load-including-geometry 102)
     (add-hook 'emacs-startup-hook #'easysession-save-mode 103))
