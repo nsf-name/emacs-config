@@ -758,9 +758,10 @@ Gruvbox is simply the best theme ever invented, but sometimes I like to have som
 #+end_src
 And then, of course, ~auto-dark-mode~:
 #+begin_src emacs-lisp
-  ;; this actually does nothing at the moment but it's nice to have
   (use-package auto-dark
     :diminish
+    ;; this package doesn't work on Linux nor Windows
+    :if *is-a-mac*
     :custom
     (auto-dark-themes '((solarized-selenized-black) (solarized-selenized-white)))
     (auto-dark-polling-interval-seconds 5)
