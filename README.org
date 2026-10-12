@@ -62,6 +62,13 @@ We need to now ~exec-path-from-shell~ and run ~no-littering~ first, before anyth
     (require 'no-littering)
     ;; apply to backups too
     (no-littering-theme-backups)
+    (let ((auto-dir (expand-file-name "var/autosaves/" user-emacs-directory))
+  	(backup-dir (expand-file-name "var/backups/" user-emacs-directory)))
+      (dolist (dir (list auto-dir backup-dir))
+        (unless (file-exists-p dir) (make-directory dir t)))
+      (setopt backup-directory-alist `(("." . ,backup-dir))
+  	    auto-save-file-name-transforms `((".*" ,auto-dir t))
+  	    auto-save-list-file-prefix (concat auto-dir ".saves-")))
     ;; move lock files
     (let ((dir (no-littering-expand-var-file-name "lock-files/")))
       (make-directory dir t)
@@ -125,8 +132,6 @@ We didn't have the frame loaded and rendered in until this point, so we couldn't
 
   ;; wrap text in visual modes
   (add-hook 'text-mode-hook 'visual-line-mode)
-  ;; hack to hide visual line mode
-  ;; we don't need to see it. we'll *know*.
   (use-package emacs
     :ensure nil
     :diminish visual-line-mode)
@@ -165,18 +170,6 @@ These go first, so that even if loading the rest of this file fails, there's at 
   ;; stop yapping during init 
   (setq-default native-comp-async-report-warnings-errors 'silent
   	      warning-minimum-level :error)
-
-  (require 'ibuffer)
-
-  ;; hate to use a package here, but this should always work
-  (use-package ibuffer-vc
-    :config
-    (require 'ibuffer-vc)
-    (add-hook 'ibuffer-hook
-  	    (lambda ()
-  	      (ibuffer-vc-set-filter-groups-by-vc-root)
-  	      (unless (eq ibuffer-sorting-mode 'alphabetic)
-  		(ibuffer-do-sort-by-alphabetic)))))
 
   ;; disable bidirectional text almost always
   (setopt bidi-display-reordering 'left-to-right
@@ -233,22 +226,6 @@ These go first, so that even if loading the rest of this file fails, there's at 
   ;; the below makes C-x 1 just focus on a single window, and easily restores them
   (winner-mode +1)
 
-  ;; fix file sizes
-  (define-ibuffer-column size-h
-    (:name "Size"
-  	 :inline t)
-    (file-size-human-readable (buffer-size)))
-
-  (setopt ibuffer-formats
-  	'((mark modified read-only locked " "
-  		(name 18 18 :left :elide)
-  		" "
-  		(size-h 9 -1 :right)
-  		" "
-  		(mode 16 16 :left :elide)
-  		" "
-  		filename-and-process)))
-
   ;; need for code snippets
   (require 'org-tempo)
 
@@ -270,18 +247,7 @@ These go first, so that even if loading the rest of this file fails, there's at 
   (when (display-graphic-p)
     (context-menu-mode))
 
-  ;; don't litter file system with *~ backup files; put them all inside
-  ;; ~/.emacs.d/backup or wherever
-  (let ((auto-dir (expand-file-name "var/autosaves/" user-emacs-directory))
-        (backup-dir (expand-file-name "var/backups/" user-emacs-directory)))
-    (dolist (dir (list auto-dir backup-dir))
-      (unless (file-exists-p dir) (make-directory dir t)))
-    (setopt backup-directory-alist `(("." . ,backup-dir))
-  	  auto-save-file-name-transforms `((".*" ,auto-dir t))
-  	  auto-save-list-file-prefix (concat auto-dir ".saves-")))
-
   ;; highlight urls
-  ;; if we don't set it this way, xwidget breaks
   (goto-address-prog-mode)
 
   ;; show the fill column
@@ -293,7 +259,6 @@ These go first, so that even if loading the rest of this file fails, there's at 
 
   ;; nicer prompts
   (fset 'yes-or-no-p 'y-or-n-p)
-  ;; doesn't work in older emacs
   (when (version< emacs-version "29")
     (when (boundp 'use-short-answers)
       (setopt use-short-answers t)))
@@ -370,30 +335,6 @@ These go first, so that even if loading the rest of this file fails, there's at 
   (when *is-a-mac*
     (setopt locate-command "mdfind")) 
 
-  ;; make TRAMP faster
-  (use-package tramp
-    :ensure nil
-    :config
-    (connection-local-set-profile-variables
-     'remote-direct-async-process
-     '((tramp-direct-async-process . t)))
-    (connection-local-set-profiles
-     '(:application tramp :protocol "ssh")
-     'remote-direct-async-process)
-    ;; change tramp-verbose if you're having issues
-    (setopt tramp-verbose 3
-  	  tramp-chunksize 2000
-  	  tramp-ssh-controlmaster-options nil
-  	  tramp-default-method "ssh"
-  	  remote-file-name-inhibit-cache nil
-  	  tramp-completion-reread-directory-timeout nil)
-    ;; stop polling all the damn time
-    (setopt vc-ignore-dir-regexp
-  	  (format "%s\\|%s" vc-ignore-dir-regexp tramp-file-name-regexp))
-    ;; reuse SSH connections
-    (setq tramp-ssh-controlmaster-options
-  	"-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=yes"))
-
   ;; make dired less awful to look at
   (setopt dired-listing-switches "-alh")
 
@@ -426,9 +367,9 @@ These go first, so that even if loading the rest of this file fails, there's at 
   (setopt dired-vc-rename-file t)
 
   ;; preset the margin size
-  (setopt display-line-numbers-grow-only nil)
-  (setopt display-line-numbers-width 3)
-  (setopt display-line-numbers-width-start nil) 
+  (setopt display-line-numbers-grow-only nil
+  	display-line-numbers-width 3
+  	display-line-numbers-width-start nil) 
 
   ;; make recursive deletes, copies, etc easier
   (setopt dired-deletion-confirmer 'y-or-n-p
@@ -545,6 +486,60 @@ These are things that I use that are nice to have but aren't part of GNU Emacs. 
 #+end_src
 *** Packages: Utility
 This category is for packages which extend Emacs without adding brand new features. Basically just tweaks or minor extensions of existing features.
+**** ~tramp~
+This is just a virtual package; Tramp is already installed in Emacs, this just changes settings.
+#+begin_src emacs-lisp
+  (use-package tramp
+      :ensure nil
+      :config
+      (connection-local-set-profile-variables
+       'remote-direct-async-process
+       '((tramp-direct-async-process . t)))
+      (connection-local-set-profiles
+       '(:application tramp :protocol "ssh")
+       'remote-direct-async-process)
+      ;; change tramp-verbose if you're having issues
+      (setopt tramp-verbose 3
+    	  tramp-chunksize 2000
+    	  tramp-ssh-controlmaster-options nil
+    	  tramp-default-method "ssh"
+    	  remote-file-name-inhibit-cache nil
+    	  tramp-completion-reread-directory-timeout nil)
+      ;; stop polling all the damn time
+      (setopt vc-ignore-dir-regexp
+    	  (format "%s\\|%s" vc-ignore-dir-regexp tramp-file-name-regexp))
+      ;; reuse SSH connections
+      (setq tramp-ssh-controlmaster-options
+    	"-o ControlMaster=auto -o ControlPath='tramp.%%C' -o ControlPersist=yes"))
+#+end_src
+**** ~ibuffer-vc~
+Use Git as a way to organize and group buffers.
+#+begin_src emacs-lisp
+  (use-package ibuffer-vc
+    :config
+    (require 'ibuffer)
+    ;; fix file sizes in ibuffer
+    (define-ibuffer-column size-h
+      (:name "Size"
+  	   :inline t)
+      (file-size-human-readable (buffer-size)))
+
+    (setopt ibuffer-formats
+  	  '((mark modified read-only locked " "
+  		(name 18 18 :left :elide)
+  		" "
+  		(size-h 9 -1 :right)
+  		" "
+  		(mode 16 16 :left :elide)
+  		" "
+  		filename-and-process)))
+    (require 'ibuffer-vc)
+    (add-hook 'ibuffer-hook
+  	    (lambda ()
+  	      (ibuffer-vc-set-filter-groups-by-vc-root)
+  	      (unless (eq ibuffer-sorting-mode 'alphabetic)
+  		(ibuffer-do-sort-by-alphabetic)))))
+#+end_src
 **** ~osx-trash~
 Really nice fix for the fact that stock Emacs can't do this.
 #+begin_src emacs-lisp
@@ -733,6 +728,13 @@ Sometimes, files are so big that Emacs simply cannot handle them. This solves th
 #+begin_src emacs-lisp
   (use-package vlf)
 #+end_src
+**** ~direnv~
+Direnv support for Emacs. This will autoload the correct environment variables when entering a project that uses this standard.
+#+begin_src emacs-lisp
+  (use-package direnv
+    :config
+    (direnv-mode))
+#+end_src
 *** Packages: Appearance
 This category is for packages which make Emacs' interface look nicer.
 **** Themes: ~gruvbox~, ~solarized~, ~vscode-dark-plus~, ~waher~, ~modus~
@@ -809,7 +811,7 @@ Makes the buffers that aren't part of real files a different color than those th
     (solaire-global-mode +1))
 #+end_src
 **** ~persist-text-scale~
-Persist the scale of the text between reloads! Should probably upstream this fix into ~no-littering~ at some point.
+Persist the scale of the text between reloads!
 #+begin_src emacs-lisp
   (use-package persist-text-scale
     :diminish
