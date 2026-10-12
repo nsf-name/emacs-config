@@ -25,24 +25,6 @@ elpaca/
 straight/
 
 # Junk
-desktop/
-history
-auto-save-list
-forge-database.sqlite
-transient
-recentf
-places
-custom.el
+var/
+.DS_Store
 README.el
-places
-.cache
-.dap-breakpoints
-.lsp-session-v1
-eclipse.jdt.ls/
-tree-sitter
-workspace
-pdf-view-restore
-projects
-tramp
-easysession/
-
