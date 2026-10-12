@@ -32,6 +32,9 @@ The default ~package.el~ is disabled by ~early-init.el~. Let's use ~Elpaca~ to m
   (elpaca elpaca-use-package
     (elpaca-use-package-mode))
 
+  ;; we want this before all use-package commands
+  (setopt use-package-compute-statistics t)
+
   (elpaca-wait)
 #+end_src
 And then install ~diminish~ and ~transient~ since we'll call them a lot later:
@@ -89,60 +92,63 @@ Now sync everything, one more time.
 *** Graphics Fixes
 We didn't have the frame loaded and rendered in until this point, so we couldn't fix stuff that was really visually annoying. Now, we can.
 #+begin_src emacs-lisp
-  (tool-bar-mode -1)
-  (scroll-bar-mode -1)
-  (pixel-scroll-mode)
-  (pixel-scroll-precision-mode)
-  (global-prettify-symbols-mode 1)
-  (setopt window-sides-vertical t)
+  (use-package emacs
+    :ensure nil
+    :diminish visual-line-mode
+    :config
+    (when (display-graphic-p)
+      ;; disable unneeded chrome
+      (tool-bar-mode -1)
+      (scroll-bar-mode -1)
+      (pixel-scroll-mode)
+      (pixel-scroll-precision-mode)
+      (global-prettify-symbols-mode 1)
+      (setopt window-sides-vertical t)
+      ;; use graphical dialogs on graphical systems
+      (setopt use-file-dialog nil
+      		    use-dialog-box nil
+      		    inhibit-startup-screen t)
+      ;; use graphical guide hints
+      (setopt x-underline-at-descent-line nil
+  	    indicate-buffer-boundaries 'left)
+      ;; reduce input latency on pgtk Linux
+      (when (boundp 'pgtk-wait-for-event-timeout)
+        (setq pgtk-wait-for-event-timeout 0.001))
+      ;; reduce querying of pointer location in X11
+      (setq mouse-highlight nil)
+      ;; reduce clipboard X11 latency
+      (setq x-select-enable-clipboard-manager nil
+  	  x-selection-timeout 100)
+      ;; horizontal mouse scrolling
+      (setopt mouse-wheel-tilt-scroll t
+  	    mouse-wheel-flip-direction t)
+      ;; dired drag and drop!
+      (setopt dired-mouse-drag-files t)))
+#+end_src
+*** Behavior Fixes
+These go first, so that even if loading the rest of this file fails, there's at least some fixes to the parts of Emacs which can largely be considered to be "bad defaults". At some point, I need to go back and move this into the ~emacs~ metapackage.
+#+begin_src emacs-lisp
+  ;; use opt on macs for meta
+  (when *is-a-mac*
+    (setopt mac-command-modifier 'meta))
 
-  (setopt use-file-dialog nil
-      	use-dialog-box nil
-      	inhibit-startup-screen t)
-
-  (setopt mac-command-modifier 'meta)
-
-  (setopt use-package-compute-statistics t)
-
+  ;; set some base text editing behavior
   (setopt line-number-mode t
   	column-number-mode t
-  	x-underline-at-descent-line nil
   	switch-to-buffer-obey-display-actions t
-  	show-trailing-whitespace nil
-  	indicate-buffer-boundaries 'left)
-
-  ;; reduce input latency on pgtk Linux
-  (when (boundp 'pgtk-wait-for-event-timeout)
-    (setq pgtk-wait-for-event-timeout 0.001))
-
-  ;; reduce querying of pointer location in X11
-  (setq mouse-highlight nil)
-
-  ;; reduce clipboard X11 latency
-  (setq x-select-enable-clipboard-manager nil
-        x-selection-timeout 100)
-
-  ;; horizontal mouse scrolling
-  (setopt mouse-wheel-tilt-scroll t
-  	mouse-wheel-flip-direction t)
+  	show-trailing-whitespace nil)
 
   ;; line numbers in programming modes
   (add-hook 'prog-mode-hook 'display-line-numbers-mode)
   (setopt display-line-numbers-width 3)
 
-  ;; wrap text in visual modes
-  (add-hook 'text-mode-hook 'visual-line-mode)
-  (use-package emacs
-    :ensure nil
-    :diminish visual-line-mode)
-
   ;; modes where hl-line is enabled
   (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
     (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
-#+end_src
-*** Behavior Fixes
-These go first, so that even if loading the rest of this file fails, there's at least some fixes to the parts of Emacs which can largely be considered to be "bad defaults". At some point, I need to go back and move this into the ~emacs~ metapackage.
-#+begin_src emacs-lisp
+
+  ;; wrap text in visual modes
+  (add-hook 'text-mode-hook 'visual-line-mode)
+
   ;; I use this for my own stuff,
   ;; so we'll disable Emacs' stupid use of this key.
   (global-unset-key (kbd "C-q"))
@@ -388,9 +394,6 @@ These go first, so that even if loading the rest of this file fails, there's at 
   (setopt dired-auto-revert-buffer 'dired-directory-changed-p)
   (setopt dired-do-revert-buffer (lambda (dir)
   				 (not (file-remote-p dir))))
-
-  ;; dired drag and drop!
-  (setopt dired-mouse-drag-files t)
 #+end_src
 *** Utility Functions
 These are things that I use that are nice to have but aren't part of GNU Emacs. Although many of them are basically replaced by ~crux~ at this point, it's nice to keep around a vanilla implementation in case packages can't be installed.
