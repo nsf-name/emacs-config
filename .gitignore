@@ -26,5 +26,6 @@ straight/
 
 # Junk
 var/
+etc/
 .DS_Store
 README.el

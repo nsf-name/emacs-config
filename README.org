@@ -65,13 +65,6 @@ We need to now ~exec-path-from-shell~ and run ~no-littering~ first, before anyth
     (require 'no-littering)
     ;; apply to backups too
     (no-littering-theme-backups)
-    (let ((auto-dir (expand-file-name "var/autosaves/" user-emacs-directory))
-  	(backup-dir (expand-file-name "var/backups/" user-emacs-directory)))
-      (dolist (dir (list auto-dir backup-dir))
-        (unless (file-exists-p dir) (make-directory dir t)))
-      (setopt backup-directory-alist `(("." . ,backup-dir))
-  	    auto-save-file-name-transforms `((".*" ,auto-dir t))
-  	    auto-save-list-file-prefix (concat auto-dir ".saves-")))
     ;; move lock files
     (let ((dir (no-littering-expand-var-file-name "lock-files/")))
       (make-directory dir t)
@@ -89,8 +82,10 @@ Now sync everything, one more time.
 #+begin_src emacs-lisp
   (elpaca-wait)
 #+end_src
-*** Graphics Fixes
-We didn't have the frame loaded and rendered in until this point, so we couldn't fix stuff that was really visually annoying. Now, we can.
+*** Builtin Fixes
+We didn't have the frame loaded and rendered in until this point, so we couldn't fix stuff that was really visually annoying. Now, we can, so graphical fixes come first, then everything else.
+
+This is its own section because even if we can't install any packages, it's nice to fix up all the defaults, so that Emacs is more usable when we're debugging init.
 #+begin_src emacs-lisp
   (use-package emacs
     :ensure nil
@@ -106,8 +101,8 @@ We didn't have the frame loaded and rendered in until this point, so we couldn't
       (setopt window-sides-vertical t)
       ;; use graphical dialogs on graphical systems
       (setopt use-file-dialog nil
-      		    use-dialog-box nil
-      		    inhibit-startup-screen t)
+  	    use-dialog-box nil
+  	    inhibit-startup-screen t)
       ;; use graphical guide hints
       (setopt x-underline-at-descent-line nil
   	    indicate-buffer-boundaries 'left)
@@ -123,277 +118,212 @@ We didn't have the frame loaded and rendered in until this point, so we couldn't
       (setopt mouse-wheel-tilt-scroll t
   	    mouse-wheel-flip-direction t)
       ;; dired drag and drop!
-      (setopt dired-mouse-drag-files t)))
-#+end_src
-*** Behavior Fixes
-These go first, so that even if loading the rest of this file fails, there's at least some fixes to the parts of Emacs which can largely be considered to be "bad defaults". At some point, I need to go back and move this into the ~emacs~ metapackage.
-#+begin_src emacs-lisp
-  ;; use opt on macs for meta
-  (when *is-a-mac*
-    (setopt mac-command-modifier 'meta))
-
-  ;; set some base text editing behavior
-  (setopt line-number-mode t
-  	column-number-mode t
-  	switch-to-buffer-obey-display-actions t
-  	show-trailing-whitespace nil)
-
-  ;; line numbers in programming modes
-  (add-hook 'prog-mode-hook 'display-line-numbers-mode)
-  (setopt display-line-numbers-width 3)
-
-  ;; modes where hl-line is enabled
-  (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
-    (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
-
-  ;; wrap text in visual modes
-  (add-hook 'text-mode-hook 'visual-line-mode)
-
-  ;; I use this for my own stuff,
-  ;; so we'll disable Emacs' stupid use of this key.
-  (global-unset-key (kbd "C-q"))
-
-  ;; genuinely baffling how this isn't the default
-  (global-set-key (kbd "C-x C-b") 'ibuffer)
-  (xterm-mouse-mode +1)
-
-  ;; make paren highlighting faster
-  (setq short-paren-delay 0.05)
-
-  ;; delete trailing whitespace
-  (delete-trailing-whitespace-mode +1)
-
-  ;; show tooltips faster
-  (setq tooltip-delay 0.3
-        tooltip-short-delay 0.08)
-
-  ;; make icomplete even faster
-  (setq icomplete-compute-delay 0.01)
-
-  ;; highlight elisp correctly
-  (setq-default elisp-fontify-semantically t)
-
-  ;; stop yapping during init 
-  (setq-default native-comp-async-report-warnings-errors 'silent
-  	      warning-minimum-level :error)
-
-  ;; disable bidirectional text almost always
-  (setopt bidi-display-reordering 'left-to-right
-  	bidi-paragraph-direction 'left-to-right)
-  (setopt bidi-inhibit-bpa t)
-
-  ;; don't fontify until we're done typing for speed
-  (setopt redisplay-skip-fontification-on-input t)
-
-  ;; make lsp mode faster
-  (setopt read-process-output-max (* 16 1024 1024)
+      (setopt dired-mouse-drag-files t))
+    ;; now for all the non-graphical stuff.
+    ;; use opt on macs for meta
+    (when *is-a-mac*
+      (setopt mac-command-modifier 'meta))
+    ;; set some base text editing behavior
+    (setopt line-number-mode t
+  	  column-number-mode t
+  	  switch-to-buffer-obey-display-actions t
+  	  show-trailing-whitespace nil)
+    ;; line numbers in programming modes
+    (add-hook 'prog-mode-hook 'display-line-numbers-mode)
+    (setopt display-line-numbers-width 3)
+    ;; modes where hl-line is enabled
+    (let ((hl-line-hooks '(text-mode-hook prog-mode-hook)))
+      (mapc (lambda (hook) (add-hook hook 'hl-line-mode)) hl-line-hooks))
+    ;; wrap text in visual modes
+    (add-hook 'text-mode-hook 'visual-line-mode)
+    ;; I use this for my own stuff,
+    ;; so we'll disable Emacs' stupid use of this key.
+    (global-unset-key (kbd "C-q"))
+    ;; genuinely baffling how this isn't the default
+    (global-set-key (kbd "C-x C-b") 'ibuffer)
+    (xterm-mouse-mode +1)
+    ;; make paren highlighting faster
+    (setq short-paren-delay 0.05)
+    ;; delete trailing whitespace
+    (delete-trailing-whitespace-mode +1)
+    ;; show tooltips faster
+    (setq tooltip-delay 0.3
+  	tooltip-short-delay 0.08)
+    ;; make icomplete even faster
+    (setq icomplete-compute-delay 0.01)
+    ;; highlight elisp correctly
+    (setq-default elisp-fontify-semantically t)
+    ;; stop yapping during init 
+    (setq-default native-comp-async-report-warnings-errors 'silent
+  		warning-minimum-level :error)
+    ;; disable bidirectional text almost always
+    (setopt bidi-display-reordering 'left-to-right
+  	  bidi-paragraph-direction 'left-to-right)
+    (setopt bidi-inhibit-bpa t)
+    ;; don't fontify until we're done typing for speed
+    (setopt redisplay-skip-fontification-on-input t)
+    ;; make lsp-mode faster
+    (setopt read-process-output-max (* 16 1024 1024)
   	  process-adaptive-read-buffering nil)
-
-  ;; don't render the cursor in non-focused windows
-  (setopt cursor-in-non-selected-windows nil)
-  (setopt highlight-nonselected-windows nil)
-
-  ;; always save our clipboard before adding new items to the kill ring
-  ;; this is so annoying I'm confused it's not default
-  (setopt save-interprogram-paste-before-kill t)
-
-  ;; no kill ring dupes
-  (setopt kill-do-not-save-duplicates t)
-
-  ;; if we save a file that should be executable, chmod it for us
-  (add-hook 'after-save-hook
-            #'executable-make-buffer-file-executable-if-script-p)
-
-  ;; don't check to see if a file is remote on find-file-at-point
-  (setopt ffap-machine-p-known 'reject)
-
-  ;; resize windows proportionally
-  (setopt window-combination-resize t)
-
-  ;; scroll horizontally conservatively
-  (setopt hscroll-margin 2
-  	hscroll-step 1)
-
-  ;; preserve point's vertical screen position when scrolling
-  (setopt scroll-preserve-screen-position t)
-
-  ;; avoid fontifying unfontified text while scrolling rapidly
-  (setopt fast-but-imprecise-scrolling t)
-
-  ;; allow scrolling actions while remaining inside a search block
-  (setopt isearch-allow-scroll 'unlimited)
-
-  ;; do not automatically adjust vertical scrolling through tall display rows
-  (setopt auto-window-vscroll nil)
-
-  ;; move point to the buffer boundary before signaling error
-  (setopt scroll-error-top-bottom t)
-
-  ;; the below makes C-x 1 just focus on a single window, and easily restores them
-  (winner-mode +1)
-
-  ;; need for code snippets
-  (require 'org-tempo)
-
-  ;; reread files from disk
-  (setopt auto-revert-avoid-polling t
-  	auto-revert-interval 5
-  	auto-revert-check-vc-info t)
-  ;; don't auto revert on remote buffers. so laggy
-  (setopt auto-revert-remote-files nil)
-  (global-auto-revert-mode)
-
-  ;; move through windows with Ctrl-<arrow keys>
-  (windmove-default-keybindings 'control)
-
-  ;; fix archaic defaults
-  (setopt sentence-end-double-space nil)
-
-  ;; make right-click do something sensible
-  (when (display-graphic-p)
-    (context-menu-mode))
-
-  ;; highlight urls
-  (goto-address-prog-mode)
-
-  ;; show the fill column
-  (setopt display-fill-column-indicator-column 80)
-  (add-hook 'prog-mode-hook #'display-fill-column-indicator-mode)
-
-  ;; force compliation to look nicer
-  (add-hook 'complilation-mode-hook 'visual-line-mode)
-
-  ;; nicer prompts
-  (fset 'yes-or-no-p 'y-or-n-p)
-  (when (version< emacs-version "29")
-    (when (boundp 'use-short-answers)
-      (setopt use-short-answers t)))
-
-  ;; remember where we are and what we're doing
-  (save-place-mode 1)
-  (setopt history-length 1000
-  	recentf-max-saved-items 1000)
-  (recentf-mode 1)
-  (savehist-mode 1)
-
-  ;; recenter the view when we return to a known file
-  (advice-add 'save-place-find-file-hook :after
-              (lambda (&rest _)
-                (when buffer-file-name (ignore-errors (recenter)))))
-
-  ;; save the kill ring to the hist function
-  (setopt savehist-additional-variables
-  	'(search-ring regexp-search-ring kill-ring))
-
-  ;; but text properties can get large, so strip them
-  ;; thanks, Doom Emacs!
-  (add-hook 'savehist-save-hook
-            (lambda ()
-              (setopt kill-ring
-                      (mapcar #'substring-no-properties
-                              (cl-remove-if-not #'stringp kill-ring)))))
-
-  ;; always use UTF-8
-  (prefer-coding-system 'utf-8)
-  (setopt locale-coding-system 'utf-8)
-  (unless *is-a-windows*
-    (set-selection-coding-system 'utf-8))
-
-  ;; when we have two unique buffers, act like it
-  (require 'uniquify)
-  (setopt uniquify-separator " • "
-  	uniquify-after-kill-buffer-p t
-  	uniquify-ignore-buffers-re "^\\*"
-  	uniquify-buffer-name-style 'reverse)
-
-  ;; handle long files
-  (when (fboundp 'so-long-enable)
-    (add-hook 'after-init-hook 'so-long-enable))
-
-  ;; but long files lead to weird behavior, so
-  (with-eval-after-load 'so-long
-    ;; keep syntax highlighting
-    (setq so-long-minor-modes (delq 'font-lock-mode so-long-minor-modes))
-    ;; reduce the decoration levels
-    (add-to-list 'so-long-variable-overrides '(treesit-font-lock-level . 1))
-    (add-to-list 'so-long-variable-overrides '(font-lock-maximum-decoration . 1))
-    ;; don't save cursor position
-    (add-to-list 'so-long-variable-overrides '(save-place-alist . nil))
-    ;; keep buffer writable
-    (setf (alist-get 'buffer-read-only so-long-variable-overrides nil t) nil)
-    ;; modern Emacs is fast at truncated lines and line numbers
-    (setf (alist-get 'truncate-lines so-long-variable-overrides nil t) nil)
-    (setf (alist-get 'line-move-visual so-long-variable-overrides nil t) nil)
-    (setq so-long-minor-modes (delq 'display-line-numbers-mode so-long-minor-modes)))
-
-  ;; don't replace the major mode. use a minor mode
-  (setq so-long-action 'so-long-minor-mode)
-
-  ;; only use long-lines mode where it ought to go
-  (with-eval-after-load 'so-long
-    (add-to-list 'so-long-target-modes 'text-mode)
-    (add-to-list 'so-long-target-modes 'conf-mode))
-
-  ;; now turn on so-long everywhere
-  (global-so-long-mode 1)
-
-  ;; when we're a mac, use mdfind not find
-  (when *is-a-mac*
-    (setopt locate-command "mdfind")) 
-
-  ;; make dired less awful to look at
-  (setopt dired-listing-switches "-alh")
-
-  ;; fix the ls related issues on macOS & Unix
-  (if (or *is-a-mac* *is-a-haiku* *is-a-unix*)
-      (progn
-        (setopt ls-lisp-use-insert-directory-program nil
-  	      dired-use-ls-dired nil)
-        (require 'ls-lisp)))
-
-  ;; keep dired clean, hide trash
-  (setopt dired-omit-verbose nil)
-  (setopt dired-omit-files (concat "\\`[.]\\'"
-  				 "\\|\\.\\(?:elc\\|a\\|o\\|pyc\\|pyo\\|swp\\|class\\)\\'"
-  				 "\\|^\\.DS_Store\\'"
-  				 "\\|^\\.\\(?:svn\\|git\\)\\'"
-  				 "\\|^flycheck_.*"
-  				 "\\|^flymake_.*"))
-
-  (add-hook 'dired-mode-hook #'dired-omit-mode)
-
-  ;; list directories first
-  (setopt ls-lisp-verbosity nil
-  	ls-lisp-dirs-first t)
-
-  ;; kill dired buffers as we navigate
-  (setopt dired-kill-when-opening-new-dired-buffer t)
-
-  ;; use vc integration when renaming files in git
-  (setopt dired-vc-rename-file t)
-
-  ;; preset the margin size
-  (setopt display-line-numbers-grow-only nil
-  	display-line-numbers-width 3
-  	display-line-numbers-width-start nil) 
-
-  ;; make recursive deletes, copies, etc easier
-  (setopt dired-deletion-confirmer 'y-or-n-p
-  	dired-recursive-deletes 'top
-  	dired-clean-confirm-killing-deleted-buffers nil)
-  (setopt dired-recursive-copies 'always
-  	dired-create-destination-dirs 'ask)
-
-  ;; hide free space thing
-  (setopt dired-free-space nil)
-
-  ;; only scroll dired files
-  (setopt dired-movement-style 'bounded-files)
-
-  ;; trigger dired reloads even faster, but not on tramp
-  (setopt dired-auto-revert-buffer 'dired-directory-changed-p)
-  (setopt dired-do-revert-buffer (lambda (dir)
-  				 (not (file-remote-p dir))))
+    ;; don't render the cursor in non-focused windows
+    (setopt cursor-in-non-selected-windows nil)
+    (setopt highlight-nonselected-windows nil)
+    ;; always save our clipboard before adding new items to the kill ring
+    ;; this is so annoying I'm confused it's not default
+    (setopt save-interprogram-paste-before-kill t)
+    ;; no kill ring dupes
+    (setopt kill-do-not-save-duplicates t)
+    ;; if we save a file that should be executable, chmod it for us
+    (add-hook 'after-save-hook
+              #'executable-make-buffer-file-executable-if-script-p)
+    ;; don't check to see if a file is remote on find-file-at-point
+    (setopt ffap-machine-p-known 'reject)
+    ;; resize windows proportionally
+    (setopt window-combination-resize t)
+    ;; scroll horizontally conservatively
+    (setopt hscroll-margin 2
+  	  hscroll-step 1)
+    ;; preserve point's vertical screen position when scrolling
+    (setopt scroll-preserve-screen-position t)
+    ;; avoid fontifying unfontified text while scrolling rapidly
+    (setopt fast-but-imprecise-scrolling t)
+    ;; allow scrolling actions while remaining inside a search block
+    (setopt isearch-allow-scroll 'unlimited)
+    ;; do not automatically adjust vertical scrolling through tall display rows
+    (setopt auto-window-vscroll nil)
+    ;; move point to the buffer boundary before signaling error
+    (setopt scroll-error-top-bottom t)
+    ;; the below makes C-x 1 just focus on a single window, and easily restores them
+    (winner-mode +1)
+    ;; need for code snippets
+    (require 'org-tempo)
+    ;; reread files from disk
+    (setopt auto-revert-avoid-polling t
+  	  auto-revert-interval 5
+  	  auto-revert-check-vc-info t)
+    ;; don't auto revert on remote buffers. so laggy
+    (setopt auto-revert-remote-files nil)
+    (global-auto-revert-mode)
+    ;; move through windows with Ctrl-<arrow keys>
+    (windmove-default-keybindings 'control)
+    ;; fix archaic defaults
+    (setopt sentence-end-double-space nil)
+    ;; make right-click do something sensible
+    (when (display-graphic-p)
+      (context-menu-mode))
+    ;; highlight urls
+    (goto-address-prog-mode)
+    ;; show the fill column
+    (setopt display-fill-column-indicator-column 80)
+    (add-hook 'prog-mode-hook #'display-fill-column-indicator-mode)
+    ;; force compliation to look nicer
+    (add-hook 'complilation-mode-hook 'visual-line-mode)
+    ;; nicer prompts
+    (fset 'yes-or-no-p 'y-or-n-p)
+    (when (version< emacs-version "29")
+      (when (boundp 'use-short-answers)
+        (setopt use-short-answers t)))
+    ;; remember where we are and what we're doing
+    (save-place-mode 1)
+    (setopt history-length 1000
+  	  recentf-max-saved-items 1000)
+    (recentf-mode 1)
+    (savehist-mode 1)
+    ;; recenter the view when we return to a known file
+    (advice-add 'save-place-find-file-hook :after
+                (lambda (&rest _)
+  		(when buffer-file-name (ignore-errors (recenter)))))
+    ;; save the kill ring to the hist function
+    (setopt savehist-additional-variables
+  	  '(search-ring regexp-search-ring kill-ring))
+    ;; but text properties can get large, so strip them
+    (add-hook 'savehist-save-hook
+              (lambda ()
+                (setopt kill-ring
+                        (mapcar #'substring-no-properties
+                                (cl-remove-if-not #'stringp kill-ring)))))
+    ;; always use UTF-8
+    (prefer-coding-system 'utf-8)
+    (setopt locale-coding-system 'utf-8)
+    (unless *is-a-windows*
+      (set-selection-coding-system 'utf-8))
+    ;; when we have two unique buffers, act like it
+    (require 'uniquify)
+    (setopt uniquify-separator " • "
+  	  uniquify-after-kill-buffer-p t
+  	  uniquify-ignore-buffers-re "^\\*"
+  	  uniquify-buffer-name-style 'reverse)
+    ;; handle long files
+    (when (fboundp 'so-long-enable)
+      (add-hook 'after-init-hook 'so-long-enable))
+    ;; but long files lead to weird behavior, so
+    (with-eval-after-load 'so-long
+      ;; keep syntax highlighting
+      (setq so-long-minor-modes (delq 'font-lock-mode so-long-minor-modes))
+      ;; reduce the decoration levels
+      (add-to-list 'so-long-variable-overrides '(treesit-font-lock-level . 1))
+      (add-to-list 'so-long-variable-overrides '(font-lock-maximum-decoration . 1))
+      ;; don't save cursor position
+      (add-to-list 'so-long-variable-overrides '(save-place-alist . nil))
+      ;; keep buffer writable
+      (setf (alist-get 'buffer-read-only so-long-variable-overrides nil t) nil)
+      ;; modern Emacs is fast at truncated lines and line numbers
+      (setf (alist-get 'truncate-lines so-long-variable-overrides nil t) nil)
+      (setf (alist-get 'line-move-visual so-long-variable-overrides nil t) nil)
+      (setq so-long-minor-modes (delq 'display-line-numbers-mode so-long-minor-modes)))
+    ;; don't replace the major mode. use a minor mode
+    (setq so-long-action 'so-long-minor-mode)
+    ;; only use long-lines mode where it ought to go
+    (with-eval-after-load 'so-long
+      (add-to-list 'so-long-target-modes 'text-mode)
+      (add-to-list 'so-long-target-modes 'conf-mode))
+    ;; now turn on so-long everywhere
+    (global-so-long-mode 1)
+    ;; when we're a mac, use mdfind not find
+    (when *is-a-mac*
+      (setopt locate-command "mdfind")) 
+    ;; make dired less awful to look at
+    (setopt dired-listing-switches "-alh")
+    ;; fix the ls related issues on macOS & Unix
+    (if (or *is-a-mac* *is-a-haiku* *is-a-unix*)
+        (progn
+  	(setopt ls-lisp-use-insert-directory-program nil
+  		dired-use-ls-dired nil)
+  	(require 'ls-lisp)))
+    ;; keep dired clean, hide trash
+    (setopt dired-omit-verbose nil)
+    (setopt dired-omit-files (concat "\\`[.]\\'"
+  				   "\\|\\.\\(?:elc\\|a\\|o\\|pyc\\|pyo\\|swp\\|class\\)\\'"
+  				   "\\|^\\.DS_Store\\'"
+  				   "\\|^\\.\\(?:svn\\|git\\)\\'"
+  				   "\\|^flycheck_.*"
+  				   "\\|^flymake_.*"))
+    (add-hook 'dired-mode-hook #'dired-omit-mode)
+    ;; list directories first
+    (setopt ls-lisp-verbosity nil
+  	  ls-lisp-dirs-first t)
+    ;; kill dired buffers as we navigate
+    (setopt dired-kill-when-opening-new-dired-buffer t)
+    ;; use vc integration when renaming files in git
+    (setopt dired-vc-rename-file t)
+    ;; preset the margin size
+    (setopt display-line-numbers-grow-only nil
+  	  display-line-numbers-width 3
+  	  display-line-numbers-width-start nil) 
+    ;; make recursive deletes, copies, etc easier
+    (setopt dired-deletion-confirmer 'y-or-n-p
+  	  dired-recursive-deletes 'top
+  	  dired-clean-confirm-killing-deleted-buffers nil)
+    (setopt dired-recursive-copies 'always
+  	  dired-create-destination-dirs 'ask)
+    ;; hide free space thing
+    (setopt dired-free-space nil)
+    ;; only scroll dired files
+    (setopt dired-movement-style 'bounded-files)
+    ;; trigger dired reloads even faster, but not on tramp
+    (setopt dired-auto-revert-buffer 'dired-directory-changed-p)
+    (setopt dired-do-revert-buffer (lambda (dir)
+  				   (not (file-remote-p dir)))))
 #+end_src
 *** Utility Functions
 These are things that I use that are nice to have but aren't part of GNU Emacs. Although many of them are basically replaced by ~crux~ at this point, it's nice to keep around a vanilla implementation in case packages can't be installed.
