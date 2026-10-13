@@ -3,7 +3,7 @@ This repository contains the setup for my Emacs configuration. It's useful for a
 
 It works best on macOS and in a graphical frame. For the best experience, use [[https://github.com/railwaycat/homebrew-emacsmacport][Yamamoto Mitsuharu's Emacs macOS port]] or [[https://github.com/jimeh/emacs-builds][Emacs Builds for macOS]]. It /might/ work on Linux or WSL, and almost certainly won't work under Windows without substantial changes.
 
-This file is split up by packages, grouped in a way that I think is logical. At run-time, ~early-init.el~ splits this file into many smaller elisp files that are then read by Emacs as one combined ~README.el~. This happens at every startup and is a bit slow, so I recommend only restarting Emacs when absolutely needed, since almost all Emacs operations can be done without needing to restart Emacs, including updating and installing new packages.
+This file is split up by packages, grouped in a way that I think is logical. At run-time, ~init.el~ splits this file into many smaller Lisp files that are then read by Emacs as one combined ~README.el~. This happens at every startup and is a bit slow, so I recommend only restarting Emacs when absolutely needed, since almost all Emacs operations can be done without needing to restart Emacs, including updating and installing new packages.
 
 ** How to Install 💻
 Firstly, make sure the following programs are installed:
@@ -14,11 +14,6 @@ Ideally in a future version of this configuration, it would prompt you to instal
 
 ~git clone~ this into ~/.emacs.d~, then start Emacs. On the first boot, this is very slow. It gets much better after the first run completes. On my machine, it takes about 6 seconds for Emacs to start. If this is substantially slower on your machine, make sure you're using Emacs 30 or newer, as the GCC JIT was not enabled before then & this config may cause extreme slowdowns in some cases without it.
 
-** Things To Improve 🤔
-- Make sure that Emacs makes sure you have all the packages you need, and gracefully degrades on failure
-- Add ~puni~ rather than ~paredit~
-- Add ~consult-gh~ support
-- ~combobulate~ at some point in the future
 ** The Actual Configuration 📖
 *** Lexical Scoping
 Since Emacs 31, dynamic scoping is basically deprecated, so this has to be at the start of any config file.
@@ -1163,6 +1158,14 @@ It's a nicer interface to ~grep~ but faster. It's even better because of the fac
 #+begin_src emacs-lisp
   (use-package deadgrep)
 #+end_src
+**** ~puni~: Smart Editing
+Emacs has many good commands for editing and movement. But wouldn't it be great if they worked on every mode? ~puni~ is basically the answer to this question by taking advantage of built-in major-mode-specific grammars. It's just a light override over the default commands, but it's such a perfect enhancement that you'll wonder why this isn't the default.
+
+All the ~puni~ interactive commands are generally useful. Someday I should go back and bind these to stuff.
+#+begin_src emacs-lisp 
+  (use-package puni
+    :hook ((prog-mode sgml-mode nxml-mode tex-mode eval-expression-minibuffer-setup) . puni-mode))
+#+end_src
 **** A Bunch of ~eshell~ Fixes
 There's not really one big package that fixes ~eshell~, but a lot of these get really close to a full overhaul.
 Here's one that lets us see command feedback, like in ~zsh~:
@@ -1228,6 +1231,14 @@ We can easily improve the directory search experience as well:
            :map vertico-map
            ("C-x C-d" . consult-dir)
            ("C-x C-j" . consult-dir-jump-file)))
+#+end_src
+**** ~consult-gh~: GitHub in Consult
+This package is also very cool. What it does is let you summon Consult effortlessly and save a whole lot of time you'd normally spend going through GitHub to find stuff. Does not work without the ~gh~ command-line tool.
+#+begin_src emacs-lisp
+  (use-package consult-gh
+    :after consult
+    :config
+    (setq consult-gh-default-clone-directory "~/Documents/Code"))
 #+end_src
 **** ~vertico~: Better Vertical Completion
 Basically exactly what it says. Makes every menu better.
