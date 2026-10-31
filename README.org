@@ -1,18 +1,24 @@
 * Personal Emacs Configuration 🏡
-This repository contains the setup for my Emacs configuration. It's useful for a wide variety of things, but of course you should fork this and edit it for your own purposes.
+This repository contains the setup for my Emacs configuration. It's kept reasonably up-to-date both with mainline Emacs development and community packages (so if I see something cool I'll steal it into my own config). I use Emacs as my editor for all development-related purposes, but unlike some other people, I don't live in Emacs; see my [[https://nsf.name/blog/emacs-the-eternal-editor/][philosophy on Emacs usage]] for more information.
 
-It works best on macOS and in a graphical frame. For the best experience, use [[https://github.com/railwaycat/homebrew-emacsmacport][Yamamoto Mitsuharu's Emacs macOS port]] or [[https://github.com/jimeh/emacs-builds][Emacs Builds for macOS]]. It /might/ work on Linux or WSL, and almost certainly won't work under Windows without substantial changes.
+It works best on macOS and in a graphical frame. For the best experience, use [[https://github.com/railwaycat/homebrew-emacsmacport][Yamamoto Mitsuharu's Emacs macOS port]] or [[https://github.com/jimeh/emacs-builds][Emacs Builds for macOS]]. It /probably/ works on Linux and WSL, and almost certainly won't work under Windows without substantial changes.
 
-This file is split up by packages, grouped in a way that I think is logical. At run-time, ~init.el~ splits this file into many smaller Lisp files that are then read by Emacs as one combined ~README.el~. This happens at every startup and is a bit slow, so I recommend only restarting Emacs when absolutely needed, since almost all Emacs operations can be done without needing to restart Emacs, including updating and installing new packages.
+Overall, I took a lot of code snippets from many great parts of the community, in particular Steven Purcell's [[https://github.com/purcell/emacs.d][.emacs.d]] and some stuff from Protestilaos' [[https://github.com/protesilaos/dotfiles][dotfiles]]. They are both excellent sources of reading for more Emacs-related wisdom. In the nearly five years I've been using Emacs I've also taken snippets from countless other places, all of them excellent.
+
+You should probably fork this repo if you intend to use it. I change stuff all the time and my choices might not make sense for your personal needs. The way I use Emacs is not exactly what will work well for you; however, given how incredible this tool is, I bet you can make it /whatever/ you need it to be!
 
 ** How to Install 💻
 Firstly, make sure the following programs are installed:
 - ~git~ (used by ~elpaca~)
 - ~gcc~ and ~cmake~ and ~libvterm~, used for ~vterm~ (optional, if not just say ~n~ when asked on install and add ~:disable t~ to ~vterm~)
+- ~aspell~ for ~jinx~ (optional, if not just answer ~n~ when prompted)
+- Any LSP servers you want (~lsp-mode~ is not great at installing automatically)
 
 Ideally in a future version of this configuration, it would prompt you to install these, but that's currently not the case. I'll fix that eventually.
 
-~git clone~ this into ~/.emacs.d~, then start Emacs. On the first boot, this is very slow. It gets much better after the first run completes. On my machine, it takes about 6 seconds for Emacs to start. If this is substantially slower on your machine, make sure you're using Emacs 30 or newer, as the GCC JIT was not enabled before then & this config may cause extreme slowdowns in some cases without it.
+~git clone~ this into ~/.emacs.d~, then start Emacs. You should then restart Emacs once the install is complete, so that the cache for the native byte compiler can be built, making future start-ups faster.
+
+Remember to fork this repo! I am not responsible if you suddenly ~git pull~ this and everything breaks someday.
 
 ** The Actual Configuration 📖
 *** Lexical Scoping
@@ -419,6 +425,7 @@ These are things that I use that are nice to have but aren't part of GNU Emacs. 
   (defun personal/config-visit ()
     (interactive)
     (find-file "~/.emacs.d/config.org"))
+  (global-set-key (kbd "C-q c") 'config-visit)
 #+end_src
 *** Packages: Utility
 This category is for packages which extend Emacs without adding brand new features. Basically just tweaks or minor extensions of existing features.
@@ -506,7 +513,7 @@ Similarly nice feature that opens up a file in macOS. This exist in ~dired~ with
   (use-package reveal-in-osx-finder
     :bind ("C-c z" . reveal-in-osx-finder))
 #+end_src
-**** ~which-key~
+**** ~which-key~ & ~transient-dwim~
 This is in stock as of Emacs 30, so this just enables it with diminish, and doesn't download anything.
 #+begin_src emacs-lisp
   (use-package which-key
@@ -514,6 +521,11 @@ This is in stock as of Emacs 30, so this just enables it with diminish, and does
     :config
     (setq which-key-idle-delay 0.5)
     (which-key-mode))
+#+end_src
+~transient-dwim~ is in a similar vein: it shows you transient commands. Launch it with the special bind, ~C-q ?~ (similar to how ~?~ functions in many of those buffers)
+#+begin_src emacs-lisp 
+  (use-package transient-dwim
+    :bind (("C-q ?" . transient-dwim-dispatch)))
 #+end_src
 **** ~sudo-edit~ & ~auto-sudoedit~
 We want to be able to edit as root, but only on Unix and Linux.
@@ -929,6 +941,14 @@ Make the cursor have a nice effect, like ~beacon~ but for within-buffer moves. T
     (setopt comet-trail-minimum-distance 50
   	  comet-trail-speed 0.25))
 #+end_src
+**** ~visible-mark~
+Small visual hint for the end of the active region.
+#+begin_src emacs-lisp
+  (use-package visible-mark
+    :diminish
+    :config
+    (global-visible-mark-mode 1))
+#+end_src
 **** ~symon~
 An extremely small system monitor in the idle modeline. Very good for full-screen Emacs, or when using X over SSH.
 #+begin_src emacs-lisp
@@ -945,7 +965,6 @@ Add a little fortune to our scratch buffers.
     :ensure (:wait t)
     :config
     (cowsay-load-cow-file (expand-file-name "tux.cow" user-emacs-directory)))
-
 
   ;; wrap the cow in comments
   (defun personal/prefix-comment (arg)
@@ -1376,6 +1395,10 @@ We should also remember our position within those documents:
     (setopt pdf-view-restore-filename "~/.emacs.d/pdf-view-restore")
     (add-hook 'pdf-view-mode-hook 'pdf-view-restore-mode))
 #+end_src
+A nice way to see more metadata:
+#+begin_src emacs-lisp
+  (use-package pdffontetc)
+#+end_src
 **** ~visual-regexp~: Replacement of ~regexp~
 Why use Emacs's ancient regexp format when we can use the much better ones that come with Python? We'll replace only the stuff we're not replacing elsewhere.
 #+begin_src emacs-lisp
@@ -1480,6 +1503,13 @@ And bind it under ~C-c r~ because it's short for restore in my mind:
   (global-set-key (kbd "C-c r d") 'easysession-delete)
   (global-set-key (kbd "C-c r r") 'easysession-rename)
   (global-set-key (kbd "C-c r R") 'easysession-reset)
+#+end_src
+**** ~anju~: Mouse in Emacs
+The mouse in Emacs is underused and mostly a poor experience. What if it were good and intuitive? With ~anju~ we mostly just get that.
+#+begin_src emacs-lisp
+  (use-package anju
+    :config
+    (anju-init))
 #+end_src
 *** Packages: Additions
 These packages add brand-new features and modes to Emacs.
@@ -1707,78 +1737,8 @@ Very easy in-buffer reference for Fortran and C code. Doesn't work over TRAMP, s
   	      :map fortran-mode-map
   	      ("C-c d" . disaster)))
 #+end_src
-**** Language: LaTeX
-LaTeX is very cool and Emacs is really, really good at this mode nowadays. Let's set up a nicer environment first:
-#+begin_src emacs-lisp
-  (use-package auctex
-    ;; the weird name diffs it from the default installed one
-    :hook ((LaTeX-mode . outline-minor-mode) ;; tab through our document like Org
-  	 (LaTeX-mode . prettify-symbols-mode) ;; math looks way nicer
-  	 (LaTeX-mode . LaTeX-math-mode) ;; make math nicer
-  	 (LaTeX-mode . visual-line-mode)
-  	 (LaTeX-mode . TeX-PDF-mode))
-    :config
-    (setopt TeX-auto-save t
-  	  TeX-parse-self t
-  	  TeX-save-query nil
-  	  TeX-preview-default nil
-  	  TeX-source-correlate-method 'synctex
-  	  TeX-source-correlate-start-server t
-  	  TeX-view-program-selection '((output-pdf "PDF Tools"))
-  	  TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
-    (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
-
-  ;; use TAB to jump around the mode really, really fast
-  (use-package cdlatex
-    :after auctex
-    :diminish
-    :hook (LaTeX-mode . turn-on-cdlatex))
-#+end_src
-Cool. Now let's set up automatic previews:
-#+begin_src emacs-lisp
-  (defun personal/latex-auto-compile ()
-    (when (eq major-mode 'LaTeX-mode)
-      (TeX-save-document (TeX-master-file))
-      (TeX-command "LaTeX" 'TeX-master-file -1)))
-
-  (add-hook 'after-save-hook #'personal/latex-auto-compile)
-#+end_src
-**** Language: Julia
-The scientific programming language of the future (and also right now, if you're working with cool people).
-#+begin_src emacs-lisp
-  (use-package julia-mode)
-#+end_src
-We also want the Julia ~tree-sitter~ mode as it's a direct superset of the stock one:
-#+begin_src emacs-lisp
-  (use-package julia-ts-mode
-    :mode "\\.jl$")
-#+end_src
-Also important to configure the LSP, which is ~JETLS.jl~ because ~LanguageServer.jl~ is unusable trash that only works in VS Code.
-#+begin_src emacs-lisp
-  ;; the maintainer for lsp-julia is dumb
-  ;; so here's my much better mode
-  (with-eval-after-load 'lsp-mode
-    (lsp-register-client
-     (make-lsp-client
-      :new-connection (lsp-stdio-connection
-  		     '("jetls" "serve"))
-      :major-modes '(julia-mode julia-ts-mode)
-      :language-id "julia"
-      :server-id 'jetls)))
-#+end_src
-A REPL would be nice too:
-#+begin_src emacs-lisp
-  (use-package julia-snail
-    :hook (julia-mode . julia-snail-mode))
-#+end_src
-Note that this package above depends on ~vterm~; go to its GitHub to use the ~eat~ alternative version. 
-**** Language: MATLAB
-To be honest, I think I can make this do more, such as having MATLAB as a language server. How exactly is a bit difficult. This code seems to maybe have some answers? https://github.com/karthink/.emacs.d/blob/master/init.el#L1660
-
-TODO: improve this
-#+begin_src emacs-lisp
-  (use-package matlab-mode)
-#+end_src
+*** Packages: Language Modes
+These are modes for programming languages. I've sorted them in order of how often I use them. Ones lower down on the list are less well-configured than ones at the top.
 **** Language: Python
 The actual mode is bundled with Emacs, but the default interpreter is trash. Let's use the better one:
 #+begin_src emacs-lisp
@@ -1822,6 +1782,42 @@ Also add Cython support:
 #+begin_src emacs-lisp
   (use-package cython-mode)
 #+end_src
+**** Language: LaTeX
+LaTeX is very cool and Emacs is really, really good at this mode nowadays. Let's set up a nicer environment first:
+#+begin_src emacs-lisp
+  (use-package auctex
+    ;; the weird name diffs it from the default installed one
+    :hook ((LaTeX-mode . outline-minor-mode) ;; tab through our document like Org
+  	 (LaTeX-mode . prettify-symbols-mode) ;; math looks way nicer
+  	 (LaTeX-mode . LaTeX-math-mode) ;; make math nicer
+  	 (LaTeX-mode . visual-line-mode)
+  	 (LaTeX-mode . TeX-PDF-mode))
+    :config
+    (setopt TeX-auto-save t
+  	  TeX-parse-self t
+  	  TeX-save-query nil
+  	  TeX-preview-default nil
+  	  TeX-source-correlate-method 'synctex
+  	  TeX-source-correlate-start-server t
+  	  TeX-view-program-selection '((output-pdf "PDF Tools"))
+  	  TeX-view-program-list '(("PDF Tools" TeX-pdf-tools-sync-view)))
+    (add-hook 'TeX-after-compilation-finished-functions #'TeX-revert-document-buffer))
+
+  ;; use TAB to jump around the mode really, really fast
+  (use-package cdlatex
+    :after auctex
+    :diminish
+    :hook (LaTeX-mode . turn-on-cdlatex))
+#+end_src
+Cool. Now let's set up automatic previews:
+#+begin_src emacs-lisp
+  (defun personal/latex-auto-compile ()
+    (when (eq major-mode 'LaTeX-mode)
+      (TeX-save-document (TeX-master-file))
+      (TeX-command "LaTeX" 'TeX-master-file -1)))
+
+  (add-hook 'after-save-hook #'personal/latex-auto-compile)
+#+end_src
 **** Language: R
 R is always going to be subpar in Emacs, but we can make it at least mildly less painful to use. ESS is okay I guess? I'd much rather use RStudio instead though.
 #+begin_src emacs-lisp
@@ -1829,19 +1825,15 @@ R is always going to be subpar in Emacs, but we can make it at least mildly less
     :config
     (require 'ess-r-mode))
 #+end_src
-**** Language: C#/.NET
-This is for project files. The core language itself is a part of Emacs since version 29.0:
+**** Language: Rust
+The mode doesn't come with Emacs, plus we'd like the newest one always:
 #+begin_src emacs-lisp
-  (use-package csproj-mode)
+  (use-package rust-mode)
 #+end_src
-**** Language: HTML/CSS/JS/TS
-These languages are terrible, fortunately ~skewer-mode~ is great and lets you use all of them in the same buffer all at once, and even summons a web server for you:
+**** Language: MATLAB
+It's solidly okay. You'll want to use the stock MATLAB for anything complex though. This thing is not very fast and can't render plots, making it pretty useless.
 #+begin_src emacs-lisp
-  (use-package skewer-mode)
-#+end_src
-Also, Emacs doesn't ship with native TypeScript support:
-#+begin_src emacs-lisp
-  (use-package typescript-mode)
+  (use-package matlab-mode)
 #+end_src
 **** Language: Go
 The mode doesn't come with Emacs:
@@ -1861,16 +1853,55 @@ Also, with some cool magic we can use ~eww~ to preview what it'll look like if w
 #+begin_src emacs-lisp
   (use-package gh-md)
 #+end_src
-**** Language: Rust
-The mode doesn't come with Emacs, plus we'd like the newest one always:
+**** Language: HTML/CSS/JS/TS
+These languages are terrible, fortunately ~skewer-mode~ is great and lets you use all of them in the same buffer all at once, and even summons a web server for you:
 #+begin_src emacs-lisp
-  (use-package rust-mode)
+  (use-package skewer-mode)
 #+end_src
+Also, Emacs doesn't ship with native TypeScript support:
+#+begin_src emacs-lisp
+  (use-package typescript-mode)
+#+end_src
+
 **** Language: Swift
 The mode doesn't come with Emacs:
 #+begin_src emacs-lisp
   (use-package swift-mode) 
 #+end_src
+**** Language: C#/.NET
+This is for project files. The core language itself is a part of Emacs since version 29.0:
+#+begin_src emacs-lisp
+  (use-package csproj-mode)
+#+end_src
+**** Language: Julia
+The scientific programming language of the future (and also right now, if you're working with cool people).
+#+begin_src emacs-lisp
+  (use-package julia-mode)
+#+end_src
+We also want the Julia ~tree-sitter~ mode as it's a direct superset of the stock one:
+#+begin_src emacs-lisp
+  (use-package julia-ts-mode
+    :mode "\\.jl$")
+#+end_src
+Also important to configure the LSP, which is ~JETLS.jl~ because ~LanguageServer.jl~ is unusable trash that only works in VS Code.
+#+begin_src emacs-lisp
+  ;; the maintainer for lsp-julia is dumb
+  ;; so here's my much better mode
+  (with-eval-after-load 'lsp-mode
+    (lsp-register-client
+     (make-lsp-client
+      :new-connection (lsp-stdio-connection
+  		     '("jetls" "serve"))
+      :major-modes '(julia-mode julia-ts-mode)
+      :language-id "julia"
+      :server-id 'jetls)))
+#+end_src
+A REPL would be nice too:
+#+begin_src emacs-lisp
+  (use-package julia-snail
+    :hook (julia-mode . julia-snail-mode))
+#+end_src
+Note that this package above depends on ~vterm~; go to its GitHub to use the ~eat~ alternative version. 
 **** Language: Gleam
 The mode doesn't come with Emacs:
 #+begin_src emacs-lisp
@@ -1881,12 +1912,6 @@ The mode doesn't come with Emacs:
 The mode doesn't come with Emacs:
 #+begin_src emacs-lisp
   (use-package clojure-mode)
-#+end_src
-**** Language: Nix
-This mode brings a lot to the table, but almost never actually need all it brings.
-#+begin_src emacs-lisp
-  (use-package nix-mode
-    :mode "\\.nix\\'")
 #+end_src
 **** Language: Common Lisp
 It's a shockingly nice language that I don't get to use often enough. In the event that I do write some more, it's nice to have the best IDE for it:
@@ -1903,6 +1928,12 @@ It's a shockingly nice language that I don't get to use often enough. In the eve
 #+end_src
 *** Packages: Misc Modes
 These are all the things that are needed for occasional, one-off editing and rarely matter all that much. They're kept around because on that blue moon where I actually need to edit one of these obscure types in Emacs, it's there.
+**** Mode: Nix
+Solidly okay mode.
+#+begin_src emacs-lisp
+  (use-package nix-mode
+    :mode "\\.nix\\'")
+#+end_src
 **** Mode: Cask
 For developing Elisp, not the one used in macOS Homebrew.
 #+begin_src emacs-lisp
@@ -2074,6 +2105,11 @@ AppleScript is not great.
 #+begin_src emacs-lisp
   (use-package powershell
     :mode "\\.ps1\\'")
+#+end_src
+**** Mode: OpenSSL Certs
+#+begin_src emacs-lisp
+  (use-package x509-mode
+    :ensure t)
 #+end_src
 *** End
 This is a good snippet to have right at the end, so that we know exactly how long it took to read the parsed file and execute it into Emacs.
