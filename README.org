@@ -690,6 +690,19 @@ Direnv support for Emacs. This will autoload the correct environment variables w
     :config
     (direnv-mode))
 #+end_src
+**** ~auto-capitalize~
+Makes Emacs automatically capitalize text in the relevant modes. (It would be cool if this had wider mode support, though.)
+#+begin_src emacs-lisp
+  (use-package auto-capitalize
+    :diminish
+    :config
+    (auto-capitalize-global-mode)
+    :hook
+    ((TeX-mode . auto-capitalize-tex-mode)
+     (org-mode . auto-capitalize-org-mode)
+     (sgml-mode . auto-capitalize-sgml-mode)
+     (nxml-mode . auto-capitalize-xml-mode)))
+#+end_src
 *** Packages: Appearance
 This category is for packages which make Emacs' interface look nicer.
 **** Themes: ~gruvbox~, ~solarized~, ~vscode-dark-plus~, ~waher~, ~modus~
@@ -738,6 +751,8 @@ It's a bit nicer looking than the powerbars, which are too flashy for me.
     :if window-system
     :diminish telephone-line-mode
     :config
+    (telephone-line-defsegment* telephone-line-smol-filesize-segment ()
+      "%I ")
     (setq-default telephone-line-lhs
   		'((evil   . (telephone-line-flycheck-segment))
   		  (accent . (telephone-line-vc-segment
@@ -745,10 +760,9 @@ It's a bit nicer looking than the powerbars, which are too flashy for me.
   		  (nil    . (telephone-line-projectile-segment
   			     telephone-line-buffer-segment)))
   		telephone-line-rhs
-  		'((nil    . (telephone-line-position-segment))
+  		'((nil    . (telephone-line-smol-filesize-segment
+  			     telephone-line-position-segment))
   		  (accent . (telephone-line-major-mode-segment))
-  		  ;; I used to put minor mode here but it's way too annoying in practice.
-  		  ;; This is where our LSP info will live
   		  (evil   . (telephone-line-misc-info-segment)))
   		telephone-line-height 24
   		;; different layouts don't render well on macOS.
@@ -756,7 +770,7 @@ It's a bit nicer looking than the powerbars, which are too flashy for me.
   		telephone-line-secondary-left-separator 'telephone-line-nil
   		telephone-line-primary-right-separator 'telephone-line-nil
   		telephone-line-secondary-right-separator 'telephone-line-nil)
-    (telephone-line-mode 1))
+    (telephone-line-mode 1)) 
 #+end_src
 **** ~solaire~
 Makes the buffers that aren't part of real files a different color than those that are.
