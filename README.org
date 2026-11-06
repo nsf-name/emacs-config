@@ -474,15 +474,31 @@ Use Git as a way to organize and group buffers.
   	   :inline t)
       (file-size-human-readable (buffer-size)))
 
+    ;; in vc-groups, hide the base path
+    (define-ibuffer-column short-filename
+      (:name "File")
+      (cond
+       ((buffer-file-name buffer)
+        (let* ((file (buffer-file-name buffer))
+               (root (when (fboundp 'vc-root-dir)
+                       (with-current-buffer buffer
+                         (vc-root-dir)))))
+  	(if root
+              (file-relative-name file root)
+            (abbreviate-file-name file))))
+       ((get-buffer-process buffer)
+        (concat "(" (process-name (get-buffer-process buffer)) ")"))
+       (t "")))
+
     (setopt ibuffer-formats
   	  '((mark modified read-only locked " "
-  		(name 18 18 :left :elide)
-  		" "
-  		(size-h 9 -1 :right)
-  		" "
-  		(mode 16 16 :left :elide)
-  		" "
-  		filename-and-process)))
+  		  (name 18 18 :left :elide)
+  		  " "
+  		  (size-h 9 -1 :right)
+  		  " "
+  		  (mode 16 16 :left :elide)
+  		  " "
+  		  short-filename)))
     (require 'ibuffer-vc)
     (add-hook 'ibuffer-hook
   	    (lambda ()
@@ -1579,15 +1595,16 @@ Like ~magit~ but for GitHub. Invaluable.
     :after magit)
 #+end_src
 **** ~gptel~: LLMs in Emacs
-I don't use this very often, but it solves a very serious problem of Emacs missing some serious features (like proper grammar checking and semantic debugging). This remedies that, but I'm still trying to find a good balance to it.
+I don't use this very often, but it solves the problem of Emacs missing some serious features (like proper grammar checking and semantic debugging). This remedies that, but I'm still trying to find a good balance to it.
 #+begin_src emacs-lisp
   (use-package gptel
     :config
-    (setopt gptel-model 'gemma4:e4b-mlx
-  	  gptel-backend (gptel-make-ollama "Ollama"
-  			  :host "localhost:11434"
-  			  :stream t
-  			  :models '(gemma4:12b-mlx gemma4:e4b-mlx))))
+    (setq gptel-backend (gptel-make-openai "LM Server"
+  			:stream t
+  			:protocol "http"
+  			:host "localhost:1234"
+  			:endpoint "/v1/chat/completions"
+  			:key "not-needed")))
 #+end_src
 **** ~igist~: GitHub Gist Client
 It's useful for quickly sharing code with someone, and has a nice transient interface. This is probably the best solution for collaborating on a document, which Emacs still can't really do yet.
